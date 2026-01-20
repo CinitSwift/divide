@@ -1,7 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
-  "regions": ["hkg1", "sin1"],
   "builds": [
     {
       "src": "api/index.ts",
