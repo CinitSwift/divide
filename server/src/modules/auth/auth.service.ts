@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UserService } from '../user/user.service';
 import { WechatService } from '../wechat/wechat.service';
-import { WxLoginDto } from './dto';
+import { WxLoginDto, UpdateProfileDto } from './dto';
 
 @Injectable()
 export class AuthService {
@@ -56,6 +56,23 @@ export class AuthService {
     if (!user) {
       return null;
     }
+    return {
+      id: user.id,
+      nickname: user.nickname,
+      avatarUrl: user.avatarUrl,
+    };
+  }
+
+  /**
+   * 更新用户资料
+   */
+  async updateProfile(userId: string, dto: UpdateProfileDto) {
+    await this.userService.update(userId, {
+      nickname: dto.nickname,
+      avatarUrl: dto.avatarUrl,
+    });
+
+    const user = await this.userService.findById(userId);
     return {
       id: user.id,
       nickname: user.nickname,
