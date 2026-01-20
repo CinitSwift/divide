@@ -1,0 +1,91 @@
+.container {
+  padding: 30rpx;
+  min-height: 100vh;
+  background: #f5f5f5;
+}
+
+.form-card {
+  padding: 40rpx 30rpx;
+}
+
+.form-title {
+  font-size: 40rpx;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 40rpx;
+  text-align: center;
+}
+
+.form-item {
+  margin-bottom: 36rpx;
+}
+
+.form-label {
+  display: block;
+  font-size: 28rpx;
+  color: #666;
+  margin-bottom: 16rpx;
+}
+
+/* 数字选择器 */
+.number-picker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f5f5f5;
+  border-radius: 12rpx;
+  padding: 20rpx;
+}
+
+.picker-btn {
+  width: 72rpx;
+  height: 72rpx;
+  background: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40rpx;
+  color: #667eea;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);
+}
+
+.picker-btn:active {
+  background: #f0f0f0;
+}
+
+.picker-value {
+  font-size: 48rpx;
+  font-weight: 600;
+  color: #333;
+  min-width: 120rpx;
+  text-align: center;
+}
+
+/* 提示 */
+.tips-box {
+  display: flex;
+  align-items: flex-start;
+  background: #fff7e6;
+  border-radius: 12rpx;
+  padding: 24rpx;
+  margin-top: 20rpx;
+}
+
+.tips-icon {
+  font-size: 32rpx;
+  margin-right: 12rpx;
+}
+
+.tips-text {
+  font-size: 26rpx;
+  color: #d48806;
+  line-height: 1.6;
+  flex: 1;
+}
+
+/* 创建按钮 */
+.create-btn {
+  margin-top: 60rpx;
+  width: 100%;
+}

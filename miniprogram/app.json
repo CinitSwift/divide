@@ -1,0 +1,19 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/login/login",
+    "pages/room/room",
+    "pages/create-room/create-room",
+    "pages/result/result"
+  ],
+  "window": {
+    "backgroundTextStyle": "dark",
+    "navigationBarBackgroundColor": "#4F46E5",
+    "navigationBarTitleText": "游戏分队",
+    "navigationBarTextStyle": "white",
+    "backgroundColor": "#F3F4F6"
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json",
+  "lazyCodeLoading": "requiredComponents"
+}

@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "noImplicitAny": true,
+    "noImplicitThis": true,
+    "strictNullChecks": true,
+    "target": "ES2017",
+    "module": "ESNext",
+    "moduleResolution": "Node",
+    "lib": ["ES2017"],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["miniprogram/*"]
+    },
+    "typeRoots": ["./typings"]
+  },
+  "include": ["miniprogram/**/*.ts"],
+  "exclude": ["node_modules"]
+}

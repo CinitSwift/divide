@@ -1,0 +1,78 @@
+<!--分边结果页面-->
+<view class="container">
+  <view class="result-header">
+    <text class="result-title">🎉 分边结果</text>
+    <text class="game-name">{{room.gameName}}</text>
+  </view>
+
+  <view class="teams-container">
+    <!-- A队 -->
+    <view class="team-card team-a">
+      <view class="team-header">
+        <view class="team-badge badge-a">A</view>
+        <text class="team-name">蓝队</text>
+        <text class="team-count">{{teamA.length}}人</text>
+      </view>
+      <view class="team-members">
+        <view class="team-member" wx:for="{{teamA}}" wx:key="id">
+          <image
+            class="member-avatar"
+            src="{{item.avatarUrl || '/images/default-avatar.png'}}"
+            mode="aspectFill"
+          ></image>
+          <text class="member-name">{{item.nickname || '用户'}}</text>
+        </view>
+        <view class="empty-tip" wx:if="{{teamA.length === 0}}">
+          <text>暂无成员</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- VS 分隔 -->
+    <view class="vs-divider">
+      <text class="vs-text">VS</text>
+    </view>
+
+    <!-- B队 -->
+    <view class="team-card team-b">
+      <view class="team-header">
+        <view class="team-badge badge-b">B</view>
+        <text class="team-name">红队</text>
+        <text class="team-count">{{teamB.length}}人</text>
+      </view>
+      <view class="team-members">
+        <view class="team-member" wx:for="{{teamB}}" wx:key="id">
+          <image
+            class="member-avatar"
+            src="{{item.avatarUrl || '/images/default-avatar.png'}}"
+            mode="aspectFill"
+          ></image>
+          <text class="member-name">{{item.nickname || '用户'}}</text>
+        </view>
+        <view class="empty-tip" wx:if="{{teamB.length === 0}}">
+          <text>暂无成员</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 操作按钮 -->
+  <view class="action-section">
+    <button
+      class="btn btn-primary redivide-btn"
+      bindtap="handleRedivide"
+      wx:if="{{isOwner}}"
+      disabled="{{loading}}"
+    >
+      🔄 重新分边
+    </button>
+
+    <button class="btn btn-secondary back-btn" bindtap="goBack">
+      返回房间
+    </button>
+
+    <button class="btn btn-secondary share-btn" open-type="share">
+      📤 分享结果
+    </button>
+  </view>
+</view>

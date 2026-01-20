@@ -1,0 +1,79 @@
+<!--房间详情页面-->
+<view class="container">
+  <!-- 房间信息头部 -->
+  <view class="room-header card">
+    <view class="game-info">
+      <text class="game-name">🎮 {{room.gameName}}</text>
+      <view class="room-code-box" bindtap="copyRoomCode">
+        <text class="room-code">房间号: {{room.roomCode}}</text>
+        <text class="copy-icon">📋</text>
+      </view>
+    </view>
+    <view class="room-meta">
+      <text class="owner-tag" wx:if="{{isOwner}}">我是房主</text>
+      <text class="status-tag status-{{room.status}}">
+        {{room.status === 'waiting' ? '等待中' : room.status === 'divided' ? '已分边' : '已关闭'}}
+      </text>
+    </view>
+  </view>
+
+  <!-- 成员列表 -->
+  <view class="members-section card">
+    <view class="section-header">
+      <text class="section-title">房间成员</text>
+      <text class="member-count">{{room.memberCount}}/{{room.maxMembers}}</text>
+    </view>
+
+    <view class="members-grid">
+      <view class="member-item" wx:for="{{room.members}}" wx:key="id">
+        <image
+          class="member-avatar"
+          src="{{item.avatarUrl || '/images/default-avatar.png'}}"
+          mode="aspectFill"
+        ></image>
+        <text class="member-name">{{item.nickname || '用户'}}</text>
+        <text class="owner-badge" wx:if="{{item.id === room.ownerId}}">房主</text>
+      </view>
+
+      <!-- 空位 -->
+      <view class="member-item empty" wx:for="{{emptySlots}}" wx:key="index">
+        <view class="empty-avatar">+</view>
+        <text class="empty-text">等待加入</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 操作按钮 -->
+  <view class="action-section">
+    <!-- 房主操作 -->
+    <block wx:if="{{isOwner}}">
+      <button
+        class="btn btn-success divide-btn"
+        bindtap="handleDivide"
+        disabled="{{room.memberCount < 2 || loading}}"
+      >
+        🎲 {{room.status === 'divided' ? '重新分边' : '开始分边'}}
+      </button>
+
+      <button class="btn btn-secondary share-btn" open-type="share">
+        📤 邀请好友
+      </button>
+
+      <button class="btn btn-danger close-btn" bindtap="handleCloseRoom">
+        关闭房间
+      </button>
+    </block>
+
+    <!-- 普通成员操作 -->
+    <block wx:else>
+      <view class="waiting-tips" wx:if="{{room.status === 'waiting'}}">
+        <text class="tips-icon">⏳</text>
+        <text class="tips-text">等待房主开始分边...</text>
+      </view>
+
+      <button class="btn btn-secondary leave-btn" bindtap="handleLeaveRoom">
+        离开房间
+      </button>
+    </block>
+  </view>
+</view>

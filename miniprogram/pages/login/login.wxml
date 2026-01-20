@@ -1,0 +1,15 @@
+<!--登录页面-->
+<view class="login-container">
+  <view class="logo-section">
+    <view class="logo">🎮</view>
+    <view class="app-name">游戏分队</view>
+    <view class="app-desc">公平随机，快速分组</view>
+  </view>
+
+  <view class="login-section">
+    <button class="btn btn-primary login-btn" bindtap="handleLogin">
+      <text>微信一键登录</text>
+    </button>
+    <view class="tips">登录即表示同意《用户协议》和《隐私政策》</view>
+  </view>
+</view>

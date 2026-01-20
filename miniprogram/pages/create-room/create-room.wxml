@@ -1,0 +1,40 @@
+<!--创建房间页面-->
+<view class="container">
+  <view class="form-card card">
+    <view class="form-title">创建新房间</view>
+
+    <view class="form-item">
+      <text class="form-label">游戏名称</text>
+      <input
+        class="input"
+        type="text"
+        maxlength="30"
+        placeholder="请输入游戏名称，如：王者荣耀5v5"
+        value="{{gameName}}"
+        bindinput="onGameNameInput"
+      />
+    </view>
+
+    <view class="form-item">
+      <text class="form-label">最大人数</text>
+      <view class="number-picker">
+        <view class="picker-btn" bindtap="decreaseMax">-</view>
+        <text class="picker-value">{{maxMembers}}</text>
+        <view class="picker-btn" bindtap="increaseMax">+</view>
+      </view>
+    </view>
+
+    <view class="tips-box">
+      <text class="tips-icon">💡</text>
+      <text class="tips-text">分边时会将所有人随机分为两队，建议设置偶数人数</text>
+    </view>
+  </view>
+
+  <button
+    class="btn btn-primary create-btn"
+    bindtap="handleCreate"
+    disabled="{{!gameName || loading}}"
+  >
+    {{loading ? '创建中...' : '创建房间'}}
+  </button>
+</view>
