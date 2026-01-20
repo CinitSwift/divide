@@ -73,6 +73,9 @@ export class AuthService {
     });
 
     const user = await this.userService.findById(userId);
+    if (!user) {
+      throw new Error('用户不存在');
+    }
     return {
       id: user.id,
       nickname: user.nickname,
