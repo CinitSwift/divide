@@ -6,12 +6,9 @@ import {
   redivideTeams,
   Room,
 } from '../../services/room';
-import { pollingService } from '../../utils/polling';
+import { pusherClient } from '../../utils/pusher';
 
 const app = getApp<IAppOption>();
-
-// 轮询 key
-const ROOM_POLLING_KEY = 'room_status';
 
 Page({
   data: {
@@ -21,6 +18,9 @@ Page({
     emptySlots: [] as number[],
     loading: false,
   },
+
+  // Pusher 频道引用
+  _pusherChannel: null as any,
 
   /**
    * 页面加载
@@ -35,21 +35,21 @@ Page({
 
     this.setData({ roomCode });
     await this.loadRoomDetail(roomCode);
-    this.startPolling(roomCode);
+    this.subscribePusher(roomCode);
   },
 
   /**
    * 页面卸载
    */
   onUnload() {
-    pollingService.stop(ROOM_POLLING_KEY);
+    this.unsubscribePusher();
   },
 
   /**
    * 页面隐藏
    */
   onHide() {
-    pollingService.stop(ROOM_POLLING_KEY);
+    // 页面隐藏时不断开连接，保持实时更新
   },
 
   /**
@@ -57,8 +57,8 @@ Page({
    */
   onShow() {
     const { roomCode } = this.data;
-    if (roomCode) {
-      this.startPolling(roomCode);
+    if (roomCode && !this._pusherChannel) {
+      this.subscribePusher(roomCode);
     }
   },
 
@@ -68,18 +68,11 @@ Page({
   async loadRoomDetail(roomCode: string) {
     try {
       const room = await getRoomDetail(roomCode);
-      const userInfo = wx.getStorageSync('userInfo');
-      const isOwner = room.ownerId === userInfo?.id;
-
-      // 计算空位
-      const emptyCount = Math.min(room.maxMembers - room.memberCount, 8);
-      const emptySlots = new Array(emptyCount).fill(0).map((_, i) => i);
-
-      this.setData({ room, isOwner, emptySlots });
+      this.updateRoomData(room);
 
       // 如果已分边，跳转到结果页
       if (room.status === 'divided') {
-        pollingService.stop(ROOM_POLLING_KEY);
+        this.unsubscribePusher();
         wx.navigateTo({
           url: `/pages/result/result?roomCode=${roomCode}`,
         });
@@ -87,7 +80,7 @@ Page({
 
       // 如果房间已关闭，返回上一页
       if (room.status === 'closed') {
-        pollingService.stop(ROOM_POLLING_KEY);
+        this.unsubscribePusher();
         wx.showToast({ title: '房间已关闭', icon: 'none' });
         setTimeout(() => wx.navigateBack(), 1000);
       }
@@ -98,39 +91,69 @@ Page({
   },
 
   /**
-   * 开始轮询房间状态
+   * 更新房间数据
    */
-  startPolling(roomCode: string) {
-    pollingService.start(
-      ROOM_POLLING_KEY,
-      () => getRoomDetail(roomCode),
-      (room: Room) => {
-        const userInfo = wx.getStorageSync('userInfo');
-        const isOwner = room.ownerId === userInfo?.id;
+  updateRoomData(room: Room) {
+    const userInfo = wx.getStorageSync('userInfo');
+    const isOwner = room.ownerId === userInfo?.id;
 
-        // 计算空位
-        const emptyCount = Math.min(room.maxMembers - room.memberCount, 8);
-        const emptySlots = new Array(emptyCount).fill(0).map((_, i) => i);
+    // 计算空位
+    const emptyCount = Math.min(room.maxMembers - room.memberCount, 8);
+    const emptySlots = new Array(emptyCount).fill(0).map((_, i) => i);
 
-        this.setData({ room, isOwner, emptySlots });
+    this.setData({ room, isOwner, emptySlots });
+  },
 
-        // 如果已分边，跳转到结果页
-        if (room.status === 'divided') {
-          pollingService.stop(ROOM_POLLING_KEY);
-          wx.navigateTo({
-            url: `/pages/result/result?roomCode=${roomCode}`,
-          });
-        }
+  /**
+   * 订阅 Pusher 频道
+   */
+  subscribePusher(roomCode: string) {
+    // 连接 Pusher
+    pusherClient.connect();
 
-        // 如果房间已关闭，返回上一页
-        if (room.status === 'closed') {
-          pollingService.stop(ROOM_POLLING_KEY);
-          wx.showToast({ title: '房间已关闭', icon: 'none' });
-          setTimeout(() => wx.navigateBack(), 1000);
-        }
-      },
-      3000 // 每 3 秒轮询一次
-    );
+    // 订阅房间频道
+    const channelName = `room-${roomCode}`;
+    this._pusherChannel = pusherClient.subscribe(channelName);
+
+    // 监听成员加入事件
+    this._pusherChannel.bind('member-joined', (data: { room: Room }) => {
+      console.log('[Pusher] Member joined:', data);
+      this.updateRoomData(data.room);
+    });
+
+    // 监听成员离开事件
+    this._pusherChannel.bind('member-left', (data: { room: Room }) => {
+      console.log('[Pusher] Member left:', data);
+      this.updateRoomData(data.room);
+    });
+
+    // 监听房间关闭事件
+    this._pusherChannel.bind('room-closed', () => {
+      console.log('[Pusher] Room closed');
+      this.unsubscribePusher();
+      wx.showToast({ title: '房间已关闭', icon: 'none' });
+      setTimeout(() => wx.navigateBack(), 1000);
+    });
+
+    // 监听分边完成事件
+    this._pusherChannel.bind('teams-divided', (data: { room: Room; result: any }) => {
+      console.log('[Pusher] Teams divided:', data);
+      this.unsubscribePusher();
+      wx.navigateTo({
+        url: `/pages/result/result?roomCode=${roomCode}`,
+      });
+    });
+  },
+
+  /**
+   * 取消订阅 Pusher 频道
+   */
+  unsubscribePusher() {
+    const { roomCode } = this.data;
+    if (roomCode) {
+      pusherClient.unsubscribe(`room-${roomCode}`);
+    }
+    this._pusherChannel = null;
   },
 
   /**
@@ -170,8 +193,8 @@ Page({
               ? await redivideTeams(room.roomCode)
               : await divideTeams(room.roomCode);
 
-            // 停止轮询
-            pollingService.stop(ROOM_POLLING_KEY);
+            // 取消订阅
+            this.unsubscribePusher();
 
             // 跳转到结果页
             wx.navigateTo({
@@ -201,7 +224,7 @@ Page({
         if (res.confirm) {
           try {
             await leaveRoom(this.data.room.roomCode);
-            pollingService.stop(ROOM_POLLING_KEY);
+            this.unsubscribePusher();
             wx.navigateBack();
           } catch (error: any) {
             wx.showToast({
@@ -226,7 +249,7 @@ Page({
         if (res.confirm) {
           try {
             await closeRoom(this.data.room.roomCode);
-            pollingService.stop(ROOM_POLLING_KEY);
+            this.unsubscribePusher();
             wx.showToast({ title: '房间已关闭', icon: 'success' });
             setTimeout(() => wx.navigateBack(), 500);
           } catch (error: any) {

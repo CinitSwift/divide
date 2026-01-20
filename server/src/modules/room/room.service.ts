@@ -12,6 +12,7 @@ import { Room, RoomStatus } from './room.entity';
 import { RoomMember, Team } from './room-member.entity';
 import { CreateRoomDto } from './dto';
 import { UserService } from '../user/user.service';
+import { PusherService } from '../pusher/pusher.service';
 
 @Injectable()
 export class RoomService {
@@ -21,6 +22,7 @@ export class RoomService {
     @InjectRepository(RoomMember)
     private readonly memberRepository: Repository<RoomMember>,
     private readonly userService: UserService,
+    private readonly pusherService: PusherService,
   ) {}
 
   /**
@@ -123,7 +125,11 @@ export class RoomService {
     // 加入房间
     await this.addMember(room.id, userId);
 
-    return this.getRoomByCode(roomCode);
+    // 获取更新后的房间信息并推送 Pusher 事件
+    const updatedRoom = await this.getRoomByCode(roomCode);
+    await this.pusherService.memberJoined(roomCode, this.formatRoomData(updatedRoom));
+
+    return updatedRoom;
   }
 
   /**
@@ -150,6 +156,10 @@ export class RoomService {
     }
 
     await this.memberRepository.delete({ roomId: room.id, userId });
+
+    // 获取更新后的房间信息并推送 Pusher 事件
+    const updatedRoom = await this.getRoomByCode(roomCode);
+    await this.pusherService.memberLeft(roomCode, this.formatRoomData(updatedRoom));
   }
 
   /**
@@ -164,6 +174,9 @@ export class RoomService {
 
     room.status = RoomStatus.CLOSED;
     await this.roomRepository.save(room);
+
+    // 推送房间关闭事件
+    await this.pusherService.roomClosed(roomCode);
 
     // 删除所有成员
     await this.memberRepository.delete({ roomId: room.id });
@@ -224,7 +237,7 @@ export class RoomService {
     await this.roomRepository.save(room);
 
     // 返回分边结果
-    return {
+    const result = {
       teamA: teamA.map((m) => ({
         id: m.user.id,
         nickname: m.user.nickname,
@@ -236,6 +249,12 @@ export class RoomService {
         avatarUrl: m.user.avatarUrl,
       })),
     };
+
+    // 推送分边完成事件
+    const updatedRoom = await this.getRoomByCode(roomCode);
+    await this.pusherService.teamsDivided(roomCode, this.formatRoomData(updatedRoom), result);
+
+    return result;
   }
 
   /**
@@ -283,5 +302,33 @@ export class RoomService {
       }));
 
     return { teamA, teamB };
+  }
+
+  /**
+   * 格式化房间数据用于 Pusher 推送
+   */
+  private formatRoomData(room: Room) {
+    return {
+      id: room.id,
+      roomCode: room.roomCode,
+      gameName: room.gameName,
+      status: room.status,
+      maxMembers: room.maxMembers,
+      ownerId: room.ownerId,
+      owner: room.owner ? {
+        id: room.owner.id,
+        nickname: room.owner.nickname,
+        avatarUrl: room.owner.avatarUrl,
+      } : null,
+      members: room.members.map((m) => ({
+        id: m.user.id,
+        nickname: m.user.nickname,
+        avatarUrl: m.user.avatarUrl,
+        team: m.team,
+        joinedAt: m.joinedAt,
+      })),
+      memberCount: room.members.length,
+      createdAt: room.createdAt,
+    };
   }
 }

@@ -5,6 +5,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { UserModule } from './modules/user/user.module';
 import { RoomModule } from './modules/room/room.module';
 import { WechatModule } from './modules/wechat/wechat.module';
+import { PusherModule } from './modules/pusher';
 import configuration from './config/configuration';
 
 @Module({
@@ -49,6 +50,7 @@ import configuration from './config/configuration';
     }),
 
     // 业务模块
+    PusherModule,
     AuthModule,
     UserModule,
     RoomModule,

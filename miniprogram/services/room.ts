@@ -1,7 +1,7 @@
 /**
  * 房间服务
  */
-import { get, post, del } from '../utils/request';
+import { get, post, del, request } from '../utils/request';
 
 // 房间信息
 export interface Room {
@@ -56,6 +56,18 @@ export async function createRoom(gameName: string, maxMembers = 10): Promise<Roo
  */
 export async function getRoomDetail(roomCode: string): Promise<Room> {
   return get<Room>(`/room/${roomCode}`);
+}
+
+/**
+ * 获取房间详情（静默模式，用于轮询，不显示 loading）
+ */
+export async function getRoomDetailSilent(roomCode: string): Promise<Room> {
+  return request<Room>({
+    url: `/room/${roomCode}`,
+    method: 'GET',
+    showLoading: false,
+    showError: false,
+  });
 }
 
 /**
