@@ -15,20 +15,36 @@ import configuration from './config/configuration';
       load: [configuration],
     }),
 
-    // 数据库连接
+    // PostgreSQL 数据库连接 (Vercel Postgres)
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => ({
-        type: 'mysql',
-        host: configService.get('database.host'),
-        port: configService.get('database.port'),
-        username: configService.get('database.username'),
-        password: configService.get('database.password'),
-        database: configService.get('database.database'),
-        entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        synchronize: configService.get('nodeEnv') === 'development', // 生产环境禁用
-        logging: configService.get('nodeEnv') === 'development',
-      }),
+      useFactory: (configService: ConfigService) => {
+        const dbUrl = configService.get('database.url');
+        
+        // 如果有 DATABASE_URL，直接使用
+        if (dbUrl) {
+          return {
+            type: 'postgres',
+            url: dbUrl,
+            entities: [__dirname + '/**/*.entity{.ts,.js}'],
+            synchronize: configService.get('nodeEnv') !== 'production',
+            ssl: configService.get('database.ssl'),
+          };
+        }
+        
+        // 否则使用分散的配置
+        return {
+          type: 'postgres',
+          host: configService.get('database.host'),
+          port: configService.get('database.port'),
+          username: configService.get('database.username'),
+          password: configService.get('database.password'),
+          database: configService.get('database.database'),
+          entities: [__dirname + '/**/*.entity{.ts,.js}'],
+          synchronize: configService.get('nodeEnv') !== 'production',
+          ssl: configService.get('database.ssl'),
+        };
+      },
       inject: [ConfigService],
     }),
 

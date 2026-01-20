@@ -24,19 +24,25 @@ async function bootstrap() {
     credentials: true,
   });
 
-  // Swagger 文档配置
-  const config = new DocumentBuilder()
-    .setTitle('游戏分队平台 API')
-    .setDescription('游戏分队平台后端 API 文档')
-    .setVersion('1.0')
-    .addBearerAuth()
-    .build();
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api/docs', app, document);
+  // Swagger 文档配置 (仅开发环境)
+  if (process.env.NODE_ENV !== 'production') {
+    const config = new DocumentBuilder()
+      .setTitle('游戏分队平台 API')
+      .setDescription('游戏分队平台后端 API 文档')
+      .setVersion('1.0')
+      .addBearerAuth()
+      .build();
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('api/docs', app, document);
+  }
 
   const port = process.env.PORT || 3000;
   await app.listen(port);
   console.log(`🚀 服务已启动: http://localhost:${port}`);
-  console.log(`📚 API 文档: http://localhost:${port}/api/docs`);
 }
+
+// 本地开发时启动服务器
 bootstrap();
+
+// 导出 app 用于 Vercel Serverless
+export default bootstrap;

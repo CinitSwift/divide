@@ -7,13 +7,15 @@
 ### 后端
 - Node.js + NestJS
 - TypeScript
-- MySQL + Redis
-- WebSocket (Socket.IO)
+- PostgreSQL (Vercel Postgres)
 - JWT 认证
 
 ### 前端
 - 微信小程序原生开发
 - TypeScript
+
+### 部署
+- Vercel (Serverless)
 
 ## 项目结构
 
@@ -29,16 +31,18 @@
 │   │       └── wechat/     # 微信服务
 │   └── package.json
 │
-└── miniprogram/            # 小程序前端
-    ├── pages/              # 页面
-    │   ├── login/          # 登录页
-    │   ├── index/          # 首页
-    │   ├── create-room/    # 创建房间
-    │   ├── room/           # 房间详情
-    │   └── result/         # 分边结果
-    ├── services/           # API 服务
-    ├── utils/              # 工具类
-    └── app.json
+├── miniprogram/            # 小程序前端
+│   ├── pages/              # 页面
+│   │   ├── login/          # 登录页
+│   │   ├── index/          # 首页
+│   │   ├── create-room/    # 创建房间
+│   │   ├── room/           # 房间详情
+│   │   └── result/         # 分边结果
+│   ├── services/           # API 服务
+│   ├── utils/              # 工具类
+│   └── app.json
+│
+└── vercel.json             # Vercel 部署配置
 ```
 
 ## 快速开始
@@ -68,6 +72,43 @@ npm run start:dev
 2. 在 `project.config.json` 中填入你的小程序 AppID
 3. 在 `miniprogram/utils/request.ts` 中配置后端 API 地址
 
+## Vercel 部署
+
+### 1. 连接 GitHub 仓库
+
+1. 登录 [Vercel](https://vercel.com)
+2. 点击 "New Project"
+3. 导入 GitHub 仓库
+
+### 2. 配置环境变量
+
+在 Vercel 项目设置中添加以下环境变量：
+
+| 变量名 | 说明 |
+|--------|------|
+| `JWT_SECRET` | JWT 密钥 |
+| `WECHAT_APPID` | 微信小程序 AppID |
+| `WECHAT_SECRET` | 微信小程序 Secret |
+
+### 3. 添加 Vercel Postgres
+
+1. 在 Vercel 项目中点击 "Storage"
+2. 选择 "Create Database" -> "Postgres"
+3. 数据库连接信息会自动注入到环境变量
+
+### 4. 部署
+
+```bash
+# 安装 Vercel CLI
+npm i -g vercel
+
+# 登录
+vercel login
+
+# 部署
+vercel --prod
+```
+
 ## API 接口
 
 ### 认证模块
@@ -88,11 +129,12 @@ npm run start:dev
 
 - ✅ 微信一键登录
 - ✅ 创建/加入房间
-- ✅ 房间成员实时同步
+- ✅ 房间成员状态同步（轮询模式）
 - ✅ Fisher-Yates 随机分边算法
 - ✅ 重新分边
 - ✅ 分享邀请好友
 - ✅ 复制房间号
+- ✅ Vercel Serverless 部署
 
 ## License
 

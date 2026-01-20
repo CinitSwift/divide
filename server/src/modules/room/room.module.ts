@@ -4,7 +4,6 @@ import { Room } from './room.entity';
 import { RoomMember } from './room-member.entity';
 import { RoomController } from './room.controller';
 import { RoomService } from './room.service';
-import { RoomGateway } from './room.gateway';
 import { UserModule } from '../user/user.module';
 
 @Module({
@@ -13,7 +12,7 @@ import { UserModule } from '../user/user.module';
     UserModule,
   ],
   controllers: [RoomController],
-  providers: [RoomService, RoomGateway],
+  providers: [RoomService],
   exports: [RoomService],
 })
 export class RoomModule {}

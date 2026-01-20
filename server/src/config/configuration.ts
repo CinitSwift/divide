@@ -2,18 +2,16 @@ export default () => ({
   port: parseInt(process.env.PORT, 10) || 3000,
   nodeEnv: process.env.NODE_ENV || 'development',
 
+  // Vercel Postgres 配置
   database: {
-    host: process.env.DB_HOST || 'localhost',
-    port: parseInt(process.env.DB_PORT, 10) || 3306,
-    username: process.env.DB_USERNAME || 'root',
-    password: process.env.DB_PASSWORD || '',
-    database: process.env.DB_DATABASE || 'game_team_divider',
-  },
-
-  redis: {
-    host: process.env.REDIS_HOST || 'localhost',
-    port: parseInt(process.env.REDIS_PORT, 10) || 6379,
-    password: process.env.REDIS_PASSWORD || undefined,
+    // Vercel Postgres 使用 POSTGRES_URL 环境变量
+    url: process.env.POSTGRES_URL || process.env.DATABASE_URL,
+    host: process.env.POSTGRES_HOST || process.env.DB_HOST || 'localhost',
+    port: parseInt(process.env.POSTGRES_PORT || process.env.DB_PORT, 10) || 5432,
+    username: process.env.POSTGRES_USER || process.env.DB_USERNAME || 'postgres',
+    password: process.env.POSTGRES_PASSWORD || process.env.DB_PASSWORD || '',
+    database: process.env.POSTGRES_DATABASE || process.env.DB_DATABASE || 'game_team_divider',
+    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
   },
 
   jwt: {

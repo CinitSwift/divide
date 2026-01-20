@@ -6,17 +6,20 @@ import {
   redivideTeams,
   Room,
 } from '../../services/room';
-import { socketClient } from '../../utils/socket';
+import { pollingService } from '../../utils/polling';
 
 const app = getApp<IAppOption>();
+
+// 轮询 key
+const ROOM_POLLING_KEY = 'room_status';
 
 Page({
   data: {
     room: {} as Room,
+    roomCode: '',
     isOwner: false,
     emptySlots: [] as number[],
     loading: false,
-    refreshTimer: null as number | null,
   },
 
   /**
@@ -30,17 +33,32 @@ Page({
       return;
     }
 
+    this.setData({ roomCode });
     await this.loadRoomDetail(roomCode);
-    this.connectWebSocket(roomCode);
+    this.startPolling(roomCode);
   },
 
   /**
    * 页面卸载
    */
   onUnload() {
-    socketClient.close();
-    if (this.data.refreshTimer) {
-      clearInterval(this.data.refreshTimer);
+    pollingService.stop(ROOM_POLLING_KEY);
+  },
+
+  /**
+   * 页面隐藏
+   */
+  onHide() {
+    pollingService.stop(ROOM_POLLING_KEY);
+  },
+
+  /**
+   * 页面显示
+   */
+  onShow() {
+    const { roomCode } = this.data;
+    if (roomCode) {
+      this.startPolling(roomCode);
     }
   },
 
@@ -61,9 +79,17 @@ Page({
 
       // 如果已分边，跳转到结果页
       if (room.status === 'divided') {
+        pollingService.stop(ROOM_POLLING_KEY);
         wx.navigateTo({
           url: `/pages/result/result?roomCode=${roomCode}`,
         });
+      }
+
+      // 如果房间已关闭，返回上一页
+      if (room.status === 'closed') {
+        pollingService.stop(ROOM_POLLING_KEY);
+        wx.showToast({ title: '房间已关闭', icon: 'none' });
+        setTimeout(() => wx.navigateBack(), 1000);
       }
     } catch (error: any) {
       wx.showToast({ title: error.message || '加载失败', icon: 'none' });
@@ -72,54 +98,39 @@ Page({
   },
 
   /**
-   * 连接 WebSocket
+   * 开始轮询房间状态
    */
-  connectWebSocket(roomCode: string) {
-    const userInfo = wx.getStorageSync('userInfo');
+  startPolling(roomCode: string) {
+    pollingService.start(
+      ROOM_POLLING_KEY,
+      () => getRoomDetail(roomCode),
+      (room: Room) => {
+        const userInfo = wx.getStorageSync('userInfo');
+        const isOwner = room.ownerId === userInfo?.id;
 
-    // 监听成员加入
-    socketClient.on('room:member_joined', (data) => {
-      console.log('新成员加入:', data);
-      this.loadRoomDetail(roomCode);
-    });
+        // 计算空位
+        const emptyCount = Math.min(room.maxMembers - room.memberCount, 8);
+        const emptySlots = new Array(emptyCount).fill(0).map((_, i) => i);
 
-    // 监听成员离开
-    socketClient.on('room:member_left', (data) => {
-      console.log('成员离开:', data);
-      this.loadRoomDetail(roomCode);
-    });
+        this.setData({ room, isOwner, emptySlots });
 
-    // 监听分边结果
-    socketClient.on('room:divided', (data) => {
-      console.log('分边完成:', data);
-      wx.navigateTo({
-        url: `/pages/result/result?roomCode=${roomCode}`,
-      });
-    });
+        // 如果已分边，跳转到结果页
+        if (room.status === 'divided') {
+          pollingService.stop(ROOM_POLLING_KEY);
+          wx.navigateTo({
+            url: `/pages/result/result?roomCode=${roomCode}`,
+          });
+        }
 
-    // 监听房间关闭
-    socketClient.on('room:closed', () => {
-      wx.showToast({ title: '房间已关闭', icon: 'none' });
-      setTimeout(() => {
-        wx.navigateBack();
-      }, 1000);
-    });
-
-    // 连接并加入房间
-    socketClient.connect(roomCode).then(() => {
-      socketClient.send('room:join', {
-        roomCode,
-        userId: userInfo.id,
-        nickname: userInfo.nickname,
-        avatarUrl: userInfo.avatarUrl,
-      });
-    });
-
-    // 备用：定时刷新（WebSocket 可能不稳定）
-    const timer = setInterval(() => {
-      this.loadRoomDetail(roomCode);
-    }, 5000);
-    this.setData({ refreshTimer: timer as unknown as number });
+        // 如果房间已关闭，返回上一页
+        if (room.status === 'closed') {
+          pollingService.stop(ROOM_POLLING_KEY);
+          wx.showToast({ title: '房间已关闭', icon: 'none' });
+          setTimeout(() => wx.navigateBack(), 1000);
+        }
+      },
+      3000 // 每 3 秒轮询一次
+    );
   },
 
   /**
@@ -159,6 +170,9 @@ Page({
               ? await redivideTeams(room.roomCode)
               : await divideTeams(room.roomCode);
 
+            // 停止轮询
+            pollingService.stop(ROOM_POLLING_KEY);
+
             // 跳转到结果页
             wx.navigateTo({
               url: `/pages/result/result?roomCode=${room.roomCode}`,
@@ -187,10 +201,7 @@ Page({
         if (res.confirm) {
           try {
             await leaveRoom(this.data.room.roomCode);
-            socketClient.send('room:leave', {
-              roomCode: this.data.room.roomCode,
-              userId: wx.getStorageSync('userInfo').id,
-            });
+            pollingService.stop(ROOM_POLLING_KEY);
             wx.navigateBack();
           } catch (error: any) {
             wx.showToast({
@@ -215,6 +226,7 @@ Page({
         if (res.confirm) {
           try {
             await closeRoom(this.data.room.roomCode);
+            pollingService.stop(ROOM_POLLING_KEY);
             wx.showToast({ title: '房间已关闭', icon: 'success' });
             setTimeout(() => wx.navigateBack(), 500);
           } catch (error: any) {
