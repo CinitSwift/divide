@@ -24,6 +24,9 @@ async function bootstrap() {
       }),
     );
 
+    // 全局前缀
+    nestApp.setGlobalPrefix('api');
+
     // CORS 配置
     nestApp.enableCors({
       origin: true,
