@@ -53,6 +53,11 @@
   border: none;
 }
 
+.login-btn[disabled] {
+  background: rgba(255, 255, 255, 0.6) !important;
+  color: rgba(102, 126, 234, 0.6) !important;
+}
+
 .tips {
   text-align: center;
   font-size: 24rpx;

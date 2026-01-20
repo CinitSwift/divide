@@ -74,9 +74,24 @@ export async function request<T = any>(options: RequestOptions): Promise<T> {
 
     const result = res.data as ApiResponse<T>;
 
-    // 成功响应
-    if (result.code === 0) {
-      return result.data;
+    // HTTP 状态码成功 (2xx)
+    if (res.statusCode >= 200 && res.statusCode < 300) {
+      // 如果响应有 code 字段，按照标准格式处理
+      if (result.code !== undefined) {
+        if (result.code === 0) {
+          return result.data;
+        }
+        // 业务错误
+        if (showError) {
+          wx.showToast({
+            title: result.message || '请求失败',
+            icon: 'none',
+          });
+        }
+        throw new Error(result.message || '请求失败');
+      }
+      // 没有 code 字段，直接返回整个响应数据
+      return res.data as T;
     }
 
     // Token 过期
@@ -87,14 +102,14 @@ export async function request<T = any>(options: RequestOptions): Promise<T> {
       throw new Error('登录已过期，请重新登录');
     }
 
-    // 业务错误
+    // 其他 HTTP 错误
     if (showError) {
       wx.showToast({
-        title: result.message || '请求失败',
+        title: '请求失败',
         icon: 'none',
       });
     }
-    throw new Error(result.message || '请求失败');
+    throw new Error('请求失败');
   } catch (error: any) {
     if (showLoading) {
       wx.hideLoading();

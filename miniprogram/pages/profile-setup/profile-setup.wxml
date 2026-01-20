@@ -1,0 +1,50 @@
+<!--个人资料设置页面-->
+<view class="container">
+  <view class="header">
+    <view class="title">完善个人资料</view>
+    <view class="subtitle">设置头像和昵称，让队友认识你</view>
+  </view>
+
+  <view class="form-section">
+    <!-- 头像选择 -->
+    <view class="form-item">
+      <view class="form-label">头像</view>
+      <button class="avatar-btn" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar">
+        <view class="avatar-wrapper">
+          <image wx:if="{{avatarUrl}}" class="avatar" src="{{avatarUrl}}" mode="aspectFill"></image>
+          <view wx:else class="avatar avatar-placeholder">
+            <text class="avatar-icon">👤</text>
+          </view>
+        </view>
+        <view class="avatar-action">
+          <text class="action-text">{{avatarUrl ? '更换头像' : '选择头像'}}</text>
+          <text class="arrow">›</text>
+        </view>
+      </button>
+    </view>
+
+    <!-- 昵称输入 -->
+    <view class="form-item">
+      <view class="form-label">昵称</view>
+      <view class="input-wrapper">
+        <input
+          type="nickname"
+          class="nickname-input"
+          placeholder="请输入昵称"
+          value="{{nickname}}"
+          bindinput="onNicknameInput"
+        />
+      </view>
+    </view>
+  </view>
+
+  <view class="btn-section">
+    <button
+      class="btn btn-primary save-btn"
+      bindtap="handleSave"
+      disabled="{{loading || !canSave}}"
+    >
+      {{loading ? '保存中...' : '保存并继续'}}
+    </button>
+  </view>
+</view>

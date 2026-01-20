@@ -1,7 +1,7 @@
 /**
  * 认证服务
  */
-import { post, get } from '../utils/request';
+import { post, get, put } from '../utils/request';
 
 interface LoginResult {
   token: string;
@@ -18,10 +18,15 @@ interface UserProfile {
   avatarUrl: string;
 }
 
+interface UpdateProfileParams {
+  nickname: string;
+  avatarUrl: string;
+}
+
 /**
  * 微信登录
  */
-export async function wxLogin(nickname?: string, avatarUrl?: string): Promise<LoginResult> {
+export async function wxLogin(): Promise<LoginResult> {
   // 获取微信 code
   const loginResult = await new Promise<WechatMiniprogram.LoginSuccessCallbackResult>(
     (resolve, reject) => {
@@ -35,8 +40,6 @@ export async function wxLogin(nickname?: string, avatarUrl?: string): Promise<Lo
   // 调用后端登录接口
   return post<LoginResult>('/auth/login', {
     code: loginResult.code,
-    nickname,
-    avatarUrl,
   });
 }
 
@@ -45,6 +48,13 @@ export async function wxLogin(nickname?: string, avatarUrl?: string): Promise<Lo
  */
 export async function getProfile(): Promise<UserProfile> {
   return get<UserProfile>('/auth/profile');
+}
+
+/**
+ * 更新用户资料
+ */
+export async function updateProfile(params: UpdateProfileParams): Promise<UserProfile> {
+  return put<UserProfile>('/auth/profile', params);
 }
 
 /**

@@ -11,6 +11,19 @@ Page({
     // 检查是否已登录
     const token = wx.getStorageSync('token');
     if (token) {
+      this.navigateAfterLogin();
+    }
+  },
+
+  /**
+   * 登录后导航逻辑
+   */
+  navigateAfterLogin() {
+    const userInfo = wx.getStorageSync('userInfo');
+    // 如果没有昵称，跳转到资料设置页
+    if (!userInfo?.nickname) {
+      wx.redirectTo({ url: '/pages/profile-setup/profile-setup' });
+    } else {
       wx.redirectTo({ url: '/pages/index/index' });
     }
   },
@@ -35,9 +48,9 @@ Page({
         icon: 'success',
       });
 
-      // 跳转到首页
+      // 根据用户资料完整性跳转
       setTimeout(() => {
-        wx.redirectTo({ url: '/pages/index/index' });
+        this.navigateAfterLogin();
       }, 500);
     } catch (error: any) {
       console.error('登录失败:', error);

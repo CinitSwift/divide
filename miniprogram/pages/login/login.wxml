@@ -7,8 +7,12 @@
   </view>
 
   <view class="login-section">
-    <button class="btn btn-primary login-btn" bindtap="handleLogin">
-      <text>微信一键登录</text>
+    <button
+      class="btn btn-primary login-btn"
+      bindtap="handleLogin"
+      disabled="{{loading}}"
+    >
+      <text>{{loading ? '登录中...' : '微信一键登录'}}</text>
     </button>
     <view class="tips">登录即表示同意《用户协议》和《隐私政策》</view>
   </view>
