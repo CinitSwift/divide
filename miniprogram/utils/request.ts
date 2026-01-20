@@ -6,8 +6,8 @@
 const isDev = true; // 开发环境
 
 export const BASE_URL = isDev
-  ? 'http://localhost:3000/api'  // 开发环境
-  : 'https://your-domain.com/api'; // 生产环境
+  ? 'https://divide-eta.vercel.app/api'  // 开发环境
+  : 'https://divide-eta.vercel.app/api'; // 生产环境
 
 export const WS_URL = isDev
   ? 'ws://localhost:3000/room'
