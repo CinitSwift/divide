@@ -150,9 +150,10 @@ export class RoomService {
   async leaveRoom(userId: string, roomCode: string): Promise<void> {
     const room = await this.getRoomByCode(roomCode);
 
-    // 房主不能离开，只能关闭房间
+    // 如果是房主离开，自动关闭房间并删除记录
     if (room.ownerId === userId) {
-      throw new BadRequestException('房主不能离开房间，请使用关闭房间功能');
+      await this.closeAndDeleteRoom(room);
+      return;
     }
 
     await this.memberRepository.delete({ roomId: room.id, userId });
@@ -201,14 +202,23 @@ export class RoomService {
       throw new ForbiddenException('只有房主才能关闭房间');
     }
 
-    room.status = RoomStatus.CLOSED;
-    await this.roomRepository.save(room);
+    await this.closeAndDeleteRoom(room);
+  }
+
+  /**
+   * 关闭房间并删除所有相关记录（私有方法）
+   */
+  private async closeAndDeleteRoom(room: Room): Promise<void> {
+    const roomCode = room.roomCode;
 
     // 推送房间关闭事件
     await this.pusherService.roomClosed(roomCode);
 
     // 删除所有成员
     await this.memberRepository.delete({ roomId: room.id });
+
+    // 删除房间记录
+    await this.roomRepository.delete({ id: room.id });
   }
 
   /**

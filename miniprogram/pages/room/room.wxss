@@ -43,6 +43,7 @@
 
 .room-meta {
   display: flex;
+  align-items: center;
   gap: 16rpx;
 }
 
@@ -50,14 +51,18 @@
   font-size: 24rpx;
   color: #fff;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 8rpx 16rpx;
+  padding: 0 16rpx;
   border-radius: 6rpx;
+  height: 44rpx;
+  line-height: 44rpx;
 }
 
 .status-tag {
   font-size: 24rpx;
-  padding: 8rpx 16rpx;
+  padding: 0 16rpx;
   border-radius: 6rpx;
+  height: 44rpx;
+  line-height: 44rpx;
 }
 
 .status-waiting {
@@ -165,8 +170,11 @@
   font-size: 20rpx;
   color: #fff;
   background: #ff9800;
-  padding: 4rpx 10rpx;
+  padding: 0 10rpx;
   border-radius: 10rpx;
+  height: 32rpx;
+  line-height: 32rpx;
+  text-align: center;
 }
 
 /* 空位 */
@@ -283,7 +291,7 @@
 
 .label-tag {
   font-size: 16rpx;
-  padding: 2rpx 6rpx;
+  padding: 0 6rpx;
   border-radius: 4rpx;
   color: #fff;
   width: 40%;
@@ -292,6 +300,8 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   box-sizing: border-box;
+  height: 28rpx;
+  line-height: 28rpx;
 }
 
 .label-more {
@@ -505,9 +515,12 @@
 
 .label-tag-big {
   font-size: 28rpx;
-  padding: 12rpx 24rpx;
-  border-radius: 8rpx;
+  padding: 0 32rpx;
+  border-radius: 12rpx;
   color: #fff;
+  height: 64rpx;
+  line-height: 64rpx;
+  text-align: center;
 }
 
 .label-tag-big.label-god {

@@ -10,10 +10,10 @@
       </view>
     </view>
     <view class="room-meta">
-      <text class="owner-tag" wx:if="{{isOwner}}">我是房主</text>
-      <text class="status-tag status-{{room.status}}">
+      <view class="owner-tag" wx:if="{{isOwner}}">我是房主</view>
+      <view class="status-tag status-{{room.status}}">
         {{room.status === 'waiting' ? '等待中' : room.status === 'divided' ? '已分边' : '已关闭'}}
-      </text>
+      </view>
     </view>
   </view>
 
@@ -53,16 +53,16 @@
           >✕</view>
         </view>
         <text class="member-name">{{item.nickname || '用户'}}</text>
-        <text class="owner-badge" wx:if="{{item.id === room.ownerId}}">房主</text>
+        <view class="owner-badge" wx:if="{{item.id === room.ownerId}}">房主</view>
         <!-- 成员标签显示 -->
         <view class="member-labels" wx:if="{{item.labels && item.labels.length > 0}}" data-member="{{item}}" data-id="{{item.id}}" catchtap="onLabelsTap" catchlongpress="onMemberLongPress">
-          <text class="label-tag label-{{item.labels[0]}}" wx:if="{{item.labels[0]}}">
+          <view class="label-tag label-{{item.labels[0]}}" wx:if="{{item.labels[0]}}">
             {{item.labels[0] === 'god' ? '幻神' : item.labels[0] === 'sister' ? '妹妹' : item.labels[0] === 'male' ? '男生' : '老板'}}
-          </text>
-          <text class="label-tag label-{{item.labels[1]}}" wx:if="{{item.labels[1]}}">
+          </view>
+          <view class="label-tag label-{{item.labels[1]}}" wx:if="{{item.labels[1]}}">
             {{item.labels[1] === 'god' ? '幻神' : item.labels[1] === 'sister' ? '妹妹' : item.labels[1] === 'male' ? '男生' : '老板'}}
-          </text>
-          <text class="label-tag label-more" wx:if="{{item.labels.length > 2}}">...</text>
+          </view>
+          <view class="label-tag label-more" wx:if="{{item.labels.length > 2}}">...</view>
         </view>
       </view>
 
@@ -210,9 +210,9 @@
     </view>
     <view class="modal-body">
       <view class="all-labels-list">
-        <text class="label-tag-big label-{{label}}" wx:for="{{viewLabelsMember.labels}}" wx:for-item="label" wx:key="*this">
+        <view class="label-tag-big label-{{label}}" wx:for="{{viewLabelsMember.labels}}" wx:for-item="label" wx:key="*this">
           {{label === 'god' ? '幻神' : label === 'sister' ? '妹妹' : label === 'male' ? '男生' : '老板'}}
-        </text>
+        </view>
       </view>
     </view>
     <view class="modal-footer single-btn">
