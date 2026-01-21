@@ -336,8 +336,9 @@ export class RoomService {
   async getDivisionResult(roomCode: string): Promise<{ teamA: any[]; teamB: any[] }> {
     const room = await this.getRoomByCode(roomCode);
 
+    // 使用字符串比较，因为从数据库读取的枚举值可能是字符串
     const teamA = room.members
-      .filter((m) => m.team === Team.TEAM_A)
+      .filter((m) => String(m.team) === 'team_a')
       .map((m) => ({
         id: m.user.id,
         nickname: m.user.nickname,
@@ -345,7 +346,7 @@ export class RoomService {
       }));
 
     const teamB = room.members
-      .filter((m) => m.team === Team.TEAM_B)
+      .filter((m) => String(m.team) === 'team_b')
       .map((m) => ({
         id: m.user.id,
         nickname: m.user.nickname,
