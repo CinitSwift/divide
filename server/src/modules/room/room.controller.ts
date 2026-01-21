@@ -34,6 +34,13 @@ export class RoomController {
     return room ? this.formatRoomResponse(room) : null;
   }
 
+  @Get('my-joined-room')
+  @ApiOperation({ summary: '获取我加入的房间（非自己创建）' })
+  async getMyJoinedRoom(@Request() req) {
+    const room = await this.roomService.getMyJoinedRoom(req.user.userId);
+    return room ? this.formatRoomResponse(room) : null;
+  }
+
   @Get(':roomCode')
   @ApiOperation({ summary: '获取房间详情' })
   async getRoomDetail(@Param('roomCode') roomCode: string) {

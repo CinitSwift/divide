@@ -99,6 +99,13 @@ export async function getMyRoom(): Promise<Room | null> {
 }
 
 /**
+ * 获取我加入的房间（非自己创建）
+ */
+export async function getMyJoinedRoom(): Promise<Room | null> {
+  return get<Room | null>('/room/my-joined-room');
+}
+
+/**
  * 开始分边
  */
 export async function divideTeams(roomCode: string): Promise<DivisionResult> {

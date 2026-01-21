@@ -64,6 +64,22 @@
       </button>
     </block>
 
+    <!-- 非成员操作 - 显示加入按钮 -->
+    <block wx:elif="{{!isMember}}">
+      <view class="join-tips">
+        <text class="tips-icon">👋</text>
+        <text class="tips-text">您还未加入此房间</text>
+      </view>
+
+      <button
+        class="btn btn-primary join-btn"
+        bindtap="handleJoinRoom"
+        disabled="{{loading || room.memberCount >= room.maxMembers}}"
+      >
+        🚪 {{room.memberCount >= room.maxMembers ? '房间已满' : '加入房间'}}
+      </button>
+    </block>
+
     <!-- 普通成员操作 -->
     <block wx:else>
       <view class="waiting-tips" wx:if="{{room.status === 'waiting'}}">

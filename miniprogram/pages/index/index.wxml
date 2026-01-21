@@ -30,7 +30,7 @@
     </view>
   </view>
 
-  <!-- 我的房间 -->
+  <!-- 我创建的房间 -->
   <view class="my-room-section" wx:if="{{myRoom}}">
     <view class="section-title">我创建的房间</view>
     <view class="room-card card" bindtap="goMyRoom">
@@ -43,6 +43,27 @@
         <text class="room-status status-{{myRoom.status}}">
           {{myRoom.status === 'waiting' ? '等待中' : myRoom.status === 'divided' ? '已分边' : '已关闭'}}
         </text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 我加入的房间 -->
+  <view class="my-room-section" wx:if="{{joinedRoom}}">
+    <view class="section-title">我加入的房间</view>
+    <view class="room-card card joined-room" bindtap="goJoinedRoom">
+      <view class="room-header">
+        <text class="room-name">{{joinedRoom.gameName}}</text>
+        <text class="room-code">房间号: {{joinedRoom.roomCode}}</text>
+      </view>
+      <view class="room-info">
+        <text class="member-count">{{joinedRoom.memberCount}}/{{joinedRoom.maxMembers}} 人</text>
+        <text class="room-status status-{{joinedRoom.status}}">
+          {{joinedRoom.status === 'waiting' ? '等待中' : joinedRoom.status === 'divided' ? '已分边' : '已关闭'}}
+        </text>
+      </view>
+      <view class="room-owner">
+        <text class="owner-label">房主:</text>
+        <text class="owner-name">{{joinedRoom.owner.nickname || '未知'}}</text>
       </view>
     </view>
   </view>

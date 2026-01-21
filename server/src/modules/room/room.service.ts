@@ -193,6 +193,28 @@ export class RoomService {
   }
 
   /**
+   * 获取用户加入的房间（非自己创建的）
+   */
+  async getMyJoinedRoom(userId: string): Promise<Room | null> {
+    // 查找用户作为成员加入的房间（排除自己创建的）
+    const member = await this.memberRepository.findOne({
+      where: { userId },
+      relations: ['room', 'room.owner', 'room.members', 'room.members.user'],
+    });
+
+    if (!member || !member.room) {
+      return null;
+    }
+
+    // 排除已关闭的房间和自己创建的房间
+    if (member.room.status === RoomStatus.CLOSED || member.room.ownerId === userId) {
+      return null;
+    }
+
+    return member.room;
+  }
+
+  /**
    * 开始分边 - Fisher-Yates 洗牌算法
    */
   async divideTeams(userId: string, roomCode: string): Promise<{ teamA: any[]; teamB: any[] }> {

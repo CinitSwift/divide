@@ -1,5 +1,5 @@
 import { checkLogin } from '../../services/auth';
-import { getMyRoom, joinRoom, Room } from '../../services/room';
+import { getMyRoom, getMyJoinedRoom, joinRoom, Room } from '../../services/room';
 
 const app = getApp<IAppOption>();
 
@@ -7,6 +7,7 @@ Page({
   data: {
     userInfo: null as any,
     myRoom: null as Room | null,
+    joinedRoom: null as Room | null,
     showJoinModal: false,
     roomCode: '',
   },
@@ -24,19 +25,32 @@ Page({
   },
 
   onShow() {
-    // 每次显示页面时刷新我的房间
+    // 每次显示页面时刷新房间信息
     this.loadMyRoom();
+    this.loadJoinedRoom();
   },
 
   /**
-   * 加载我的房间
+   * 加载我创建的房间
    */
   async loadMyRoom() {
     try {
       const myRoom = await getMyRoom();
       this.setData({ myRoom });
     } catch (error) {
-      console.error('加载房间失败:', error);
+      console.error('加载创建的房间失败:', error);
+    }
+  },
+
+  /**
+   * 加载我加入的房间
+   */
+  async loadJoinedRoom() {
+    try {
+      const joinedRoom = await getMyJoinedRoom();
+      this.setData({ joinedRoom });
+    } catch (error) {
+      console.error('加载加入的房间失败:', error);
     }
   },
 
@@ -68,6 +82,17 @@ Page({
     if (this.data.myRoom) {
       wx.navigateTo({
         url: `/pages/room/room?roomCode=${this.data.myRoom.roomCode}`,
+      });
+    }
+  },
+
+  /**
+   * 进入加入的房间
+   */
+  goJoinedRoom() {
+    if (this.data.joinedRoom) {
+      wx.navigateTo({
+        url: `/pages/room/room?roomCode=${this.data.joinedRoom.roomCode}`,
       });
     }
   },
@@ -130,7 +155,7 @@ Page({
    * 下拉刷新
    */
   async onPullDownRefresh() {
-    await this.loadMyRoom();
+    await Promise.all([this.loadMyRoom(), this.loadJoinedRoom()]);
     wx.stopPullDownRefresh();
   },
 });

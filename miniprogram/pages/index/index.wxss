@@ -147,6 +147,31 @@
   color: #ff4d4f;
 }
 
+/* 加入的房间卡片样式 */
+.joined-room {
+  border-left: 8rpx solid #52c41a;
+}
+
+.room-owner {
+  display: flex;
+  align-items: center;
+  margin-top: 16rpx;
+  padding-top: 16rpx;
+  border-top: 1rpx solid #f0f0f0;
+}
+
+.owner-label {
+  font-size: 26rpx;
+  color: #999;
+  margin-right: 8rpx;
+}
+
+.owner-name {
+  font-size: 26rpx;
+  color: #666;
+  font-weight: 500;
+}
+
 /* 弹窗 */
 .modal {
   position: fixed;

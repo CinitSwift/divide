@@ -1,5 +1,6 @@
 import {
   getRoomDetail,
+  joinRoom,
   leaveRoom,
   closeRoom,
   divideTeams,
@@ -15,6 +16,7 @@ Page({
     room: {} as Room,
     roomCode: '',
     isOwner: false,
+    isMember: false,
     emptySlots: [] as number[],
     loading: false,
   },
@@ -97,11 +99,14 @@ Page({
     const userInfo = wx.getStorageSync('userInfo');
     const isOwner = room.ownerId === userInfo?.id;
 
+    // 检查当前用户是否是房间成员
+    const isMember = room.members?.some((m) => m.id === userInfo?.id) || false;
+
     // 计算空位
     const emptyCount = Math.min(room.maxMembers - room.memberCount, 8);
     const emptySlots = new Array(emptyCount).fill(0).map((_, i) => i);
 
-    this.setData({ room, isOwner, emptySlots });
+    this.setData({ room, isOwner, isMember, emptySlots });
   },
 
   /**
@@ -166,6 +171,28 @@ Page({
         wx.showToast({ title: '已复制房间号', icon: 'success' });
       },
     });
+  },
+
+  /**
+   * 加入房间
+   */
+  async handleJoinRoom() {
+    const { roomCode, loading } = this.data;
+    if (loading) return;
+
+    this.setData({ loading: true });
+    try {
+      const room = await joinRoom(roomCode);
+      this.updateRoomData(room);
+      wx.showToast({ title: '加入成功', icon: 'success' });
+    } catch (error: any) {
+      wx.showToast({
+        title: error.message || '加入失败',
+        icon: 'none',
+      });
+    } finally {
+      this.setData({ loading: false });
+    }
   },
 
   /**

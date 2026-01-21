@@ -202,3 +202,28 @@
   font-size: 30rpx;
   color: #d48806;
 }
+
+/* 加入提示 */
+.join-tips {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40rpx;
+  background: #e6f7ff;
+  border-radius: 16rpx;
+  margin-bottom: 24rpx;
+}
+
+.join-tips .tips-icon {
+  font-size: 40rpx;
+  margin-right: 16rpx;
+}
+
+.join-tips .tips-text {
+  font-size: 30rpx;
+  color: #1890ff;
+}
+
+.join-btn {
+  margin-bottom: 24rpx;
+}
