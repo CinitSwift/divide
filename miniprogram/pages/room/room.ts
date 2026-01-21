@@ -5,6 +5,7 @@ import {
   closeRoom,
   divideTeams,
   redivideTeams,
+  removeMember,
   Room,
 } from '../../services/room';
 import { pusherClient } from '../../utils/pusher';
@@ -17,6 +18,7 @@ Page({
     roomCode: '',
     isOwner: false,
     isMember: false,
+    selectedMemberId: '', // 选中的成员ID，用于显示删除图标
     emptySlots: [] as number[],
     loading: false,
   },
@@ -192,6 +194,70 @@ Page({
       });
     } finally {
       this.setData({ loading: false });
+    }
+  },
+
+  /**
+   * 点击成员头像（房主可选中成员以显示删除图标）
+   */
+  onMemberTap(e: any) {
+    const { isOwner, room } = this.data;
+    if (!isOwner) return;
+
+    const memberId = e.currentTarget.dataset.id;
+    // 不能选中自己（房主）
+    if (memberId === room.ownerId) return;
+
+    // 如果点击的是已选中的成员，取消选中
+    if (this.data.selectedMemberId === memberId) {
+      this.setData({ selectedMemberId: '' });
+    } else {
+      this.setData({ selectedMemberId: memberId });
+    }
+  },
+
+  /**
+   * 点击删除图标移除成员
+   */
+  async onRemoveMember(e: any) {
+    const memberId = e.currentTarget.dataset.id;
+    const { room, loading } = this.data;
+    if (loading) return;
+
+    // 找到成员信息
+    const member = room.members.find((m) => m.id === memberId);
+    const memberName = member?.nickname || '该成员';
+
+    wx.showModal({
+      title: '确认移除',
+      content: `确定要将 ${memberName} 移出房间吗？`,
+      confirmColor: '#ff4d4f',
+      success: async (res) => {
+        if (res.confirm) {
+          this.setData({ loading: true });
+          try {
+            await removeMember(room.roomCode, memberId);
+            this.setData({ selectedMemberId: '' });
+            wx.showToast({ title: '已移除', icon: 'success' });
+          } catch (error: any) {
+            wx.showToast({
+              title: error.message || '移除失败',
+              icon: 'none',
+            });
+          } finally {
+            this.setData({ loading: false });
+          }
+        }
+      },
+    });
+  },
+
+  /**
+   * 点击页面其他区域取消选中
+   */
+  onContainerTap() {
+    if (this.data.selectedMemberId) {
+      this.setData({ selectedMemberId: '' });
     }
   },
 

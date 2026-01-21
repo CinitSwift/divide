@@ -85,6 +85,13 @@ export async function leaveRoom(roomCode: string): Promise<void> {
 }
 
 /**
+ * 房主移除成员
+ */
+export async function removeMember(roomCode: string, memberId: string): Promise<void> {
+  return post(`/room/${roomCode}/remove/${memberId}`);
+}
+
+/**
  * 关闭房间
  */
 export async function closeRoom(roomCode: string): Promise<void> {

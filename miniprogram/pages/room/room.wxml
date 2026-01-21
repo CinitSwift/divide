@@ -1,7 +1,7 @@
 <!--房间详情页面-->
-<view class="container">
+<view class="container" bindtap="onContainerTap">
   <!-- 房间信息头部 -->
-  <view class="room-header card">
+  <view class="room-header card" catchtap="">
     <view class="game-info">
       <text class="game-name">🎮 {{room.gameName}}</text>
       <view class="room-code-box" bindtap="copyRoomCode">
@@ -18,19 +18,34 @@
   </view>
 
   <!-- 成员列表 -->
-  <view class="members-section card">
+  <view class="members-section card" catchtap="">
     <view class="section-header">
       <text class="section-title">房间成员</text>
       <text class="member-count">{{room.memberCount}}/{{room.maxMembers}}</text>
     </view>
 
     <view class="members-grid">
-      <view class="member-item" wx:for="{{room.members}}" wx:key="id">
-        <image
-          class="member-avatar"
-          src="{{item.avatarUrl || '/images/default-avatar.png'}}"
-          mode="aspectFill"
-        ></image>
+      <view
+        class="member-item {{selectedMemberId === item.id ? 'selected' : ''}}"
+        wx:for="{{room.members}}"
+        wx:key="id"
+        data-id="{{item.id}}"
+        catchtap="onMemberTap"
+      >
+        <view class="avatar-wrapper">
+          <image
+            class="member-avatar"
+            src="{{item.avatarUrl || '/images/default-avatar.png'}}"
+            mode="aspectFill"
+          ></image>
+          <!-- 删除图标 - 仅房主可见且选中时显示 -->
+          <view
+            class="remove-icon"
+            wx:if="{{isOwner && selectedMemberId === item.id && item.id !== room.ownerId}}"
+            data-id="{{item.id}}"
+            catchtap="onRemoveMember"
+          >✕</view>
+        </view>
         <text class="member-name">{{item.nickname || '用户'}}</text>
         <text class="owner-badge" wx:if="{{item.id === room.ownerId}}">房主</text>
       </view>

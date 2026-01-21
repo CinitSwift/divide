@@ -163,6 +163,35 @@ export class RoomService {
   }
 
   /**
+   * 房主移除成员
+   */
+  async removeMember(ownerId: string, roomCode: string, memberId: string): Promise<void> {
+    const room = await this.getRoomByCode(roomCode);
+
+    // 验证是否为房主
+    if (room.ownerId !== ownerId) {
+      throw new ForbiddenException('只有房主才能移除成员');
+    }
+
+    // 不能移除自己
+    if (memberId === ownerId) {
+      throw new BadRequestException('不能移除房主自己');
+    }
+
+    // 检查成员是否在房间中
+    const member = room.members.find((m) => m.userId === memberId);
+    if (!member) {
+      throw new BadRequestException('该成员不在房间中');
+    }
+
+    await this.memberRepository.delete({ roomId: room.id, userId: memberId });
+
+    // 获取更新后的房间信息并推送 Pusher 事件
+    const updatedRoom = await this.getRoomByCode(roomCode);
+    await this.pusherService.memberLeft(roomCode, this.formatRoomData(updatedRoom));
+  }
+
+  /**
    * 关闭房间
    */
   async closeRoom(userId: string, roomCode: string): Promise<void> {

@@ -62,6 +62,17 @@ export class RoomController {
     return { success: true };
   }
 
+  @Post(':roomCode/remove/:memberId')
+  @ApiOperation({ summary: '房主移除成员' })
+  async removeMember(
+    @Request() req,
+    @Param('roomCode') roomCode: string,
+    @Param('memberId') memberId: string,
+  ) {
+    await this.roomService.removeMember(req.user.userId, roomCode, memberId);
+    return { success: true };
+  }
+
   @Delete(':roomCode')
   @ApiOperation({ summary: '关闭房间' })
   async closeRoom(@Request() req, @Param('roomCode') roomCode: string) {
