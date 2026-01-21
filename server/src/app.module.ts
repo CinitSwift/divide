@@ -28,7 +28,7 @@ import configuration from './config/configuration';
             type: 'postgres',
             url: dbUrl,
             entities: [__dirname + '/**/*.entity{.ts,.js}'],
-            synchronize: configService.get('nodeEnv') !== 'production', // TODO: 表创建完成后改回 configService.get('nodeEnv') !== 'production'
+            synchronize: true, // TODO: 表创建完成后改回 configService.get('nodeEnv') !== 'production'
             ssl: configService.get('database.ssl'),
           };
         }
