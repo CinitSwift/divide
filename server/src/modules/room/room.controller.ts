@@ -41,11 +41,49 @@ export class RoomController {
     return room ? this.formatRoomResponse(room) : null;
   }
 
-  @Get(':roomCode')
-  @ApiOperation({ summary: '获取房间详情' })
-  async getRoomDetail(@Param('roomCode') roomCode: string) {
-    const room = await this.roomService.getRoomByCode(roomCode);
-    return this.formatRoomResponse(room);
+  @Post(':roomCode/member/:memberId/labels')
+  @ApiOperation({ summary: '设置成员标签' })
+  async setMemberLabels(
+    @Request() req,
+    @Param('roomCode') roomCode: string,
+    @Param('memberId') memberId: string,
+    @Body('labels') labels: string[],
+  ) {
+    await this.roomService.setMemberLabels(
+      req.user.userId,
+      roomCode,
+      memberId,
+      labels || [],
+    );
+    return { success: true };
+  }
+
+  @Post(':roomCode/label-rules')
+  @ApiOperation({ summary: '设置标签规则' })
+  async setLabelRules(
+    @Request() req,
+    @Param('roomCode') roomCode: string,
+    @Body('labelRules') labelRules: any,
+  ) {
+    await this.roomService.setLabelRules(req.user.userId, roomCode, labelRules || {});
+    return { success: true };
+  }
+
+  @Post(':roomCode/remove/:memberId')
+  @ApiOperation({ summary: '房主移除成员' })
+  async removeMember(
+    @Request() req,
+    @Param('roomCode') roomCode: string,
+    @Param('memberId') memberId: string,
+  ) {
+    await this.roomService.removeMember(req.user.userId, roomCode, memberId);
+    return { success: true };
+  }
+
+  @Get(':roomCode/result')
+  @ApiOperation({ summary: '获取分边结果' })
+  async getDivisionResult(@Param('roomCode') roomCode: string) {
+    return this.roomService.getDivisionResult(roomCode);
   }
 
   @Post(':roomCode/join')
@@ -62,24 +100,6 @@ export class RoomController {
     return { success: true };
   }
 
-  @Post(':roomCode/remove/:memberId')
-  @ApiOperation({ summary: '房主移除成员' })
-  async removeMember(
-    @Request() req,
-    @Param('roomCode') roomCode: string,
-    @Param('memberId') memberId: string,
-  ) {
-    await this.roomService.removeMember(req.user.userId, roomCode, memberId);
-    return { success: true };
-  }
-
-  @Delete(':roomCode')
-  @ApiOperation({ summary: '关闭房间' })
-  async closeRoom(@Request() req, @Param('roomCode') roomCode: string) {
-    await this.roomService.closeRoom(req.user.userId, roomCode);
-    return { success: true };
-  }
-
   @Post(':roomCode/divide')
   @ApiOperation({ summary: '开始分边' })
   async divideTeams(@Request() req, @Param('roomCode') roomCode: string) {
@@ -92,10 +112,18 @@ export class RoomController {
     return this.roomService.redivideTeams(req.user.userId, roomCode);
   }
 
-  @Get(':roomCode/result')
-  @ApiOperation({ summary: '获取分边结果' })
-  async getDivisionResult(@Param('roomCode') roomCode: string) {
-    return this.roomService.getDivisionResult(roomCode);
+  @Delete(':roomCode')
+  @ApiOperation({ summary: '关闭房间' })
+  async closeRoom(@Request() req, @Param('roomCode') roomCode: string) {
+    await this.roomService.closeRoom(req.user.userId, roomCode);
+    return { success: true };
+  }
+
+  @Get(':roomCode')
+  @ApiOperation({ summary: '获取房间详情' })
+  async getRoomDetail(@Param('roomCode') roomCode: string) {
+    const room = await this.roomService.getRoomByCode(roomCode);
+    return this.formatRoomResponse(room);
   }
 
   /**
@@ -109,6 +137,7 @@ export class RoomController {
       status: room.status,
       maxMembers: room.maxMembers,
       ownerId: room.ownerId,
+      labelRules: room.labelRules || {},
       owner: room.owner
         ? {
             id: room.owner.id,
@@ -121,6 +150,7 @@ export class RoomController {
         nickname: m.user?.nickname,
         avatarUrl: m.user?.avatarUrl,
         team: m.team,
+        labels: m.labels || [],
         joinedAt: m.joinedAt,
       })) || [],
       memberCount: room.members?.length || 0,

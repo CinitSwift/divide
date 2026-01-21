@@ -8,8 +8,8 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Room, RoomStatus } from './room.entity';
-import { RoomMember, Team } from './room-member.entity';
+import { Room, RoomStatus, LabelRule, LabelRulesConfig } from './room.entity';
+import { RoomMember, Team, MemberLabel } from './room-member.entity';
 import { CreateRoomDto } from './dto';
 import { UserService } from '../user/user.service';
 import { PusherService } from '../pusher/pusher.service';
@@ -244,7 +244,7 @@ export class RoomService {
   }
 
   /**
-   * 开始分边 - Fisher-Yates 洗牌算法
+   * 开始分边 - 支持标签规则的分边算法
    */
   async divideTeams(userId: string, roomCode: string): Promise<{ teamA: any[]; teamB: any[] }> {
     const room = await this.getRoomByCode(roomCode);
@@ -263,17 +263,11 @@ export class RoomService {
       throw new BadRequestException('至少需要2人才能分边');
     }
 
-    // Fisher-Yates 洗牌算法
-    const shuffled = [...members];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-    }
+    // 获取标签规则
+    const labelRules = room.labelRules || {};
 
-    // 分配队伍
-    const mid = Math.floor(shuffled.length / 2);
-    const teamA = shuffled.slice(0, mid);
-    const teamB = shuffled.slice(mid);
+    // 使用带规则的分边算法
+    const { teamA, teamB } = this.divideWithRules(members, labelRules);
 
     // 更新成员队伍信息
     for (const member of teamA) {
@@ -293,11 +287,13 @@ export class RoomService {
         id: m.user.id,
         nickname: m.user.nickname,
         avatarUrl: m.user.avatarUrl,
+        labels: m.labels || [],
       })),
       teamB: teamB.map((m) => ({
         id: m.user.id,
         nickname: m.user.nickname,
         avatarUrl: m.user.avatarUrl,
+        labels: m.labels || [],
       })),
     };
 
@@ -306,6 +302,117 @@ export class RoomService {
     await this.pusherService.teamsDivided(roomCode, this.formatRoomData(updatedRoom), result);
 
     return result;
+  }
+
+  /**
+   * 带规则的分边算法
+   */
+  private divideWithRules(
+    members: RoomMember[],
+    labelRules: LabelRulesConfig,
+  ): { teamA: RoomMember[]; teamB: RoomMember[] } {
+    const teamA: RoomMember[] = [];
+    const teamB: RoomMember[] = [];
+    const unassigned: RoomMember[] = [];
+
+    // 第一步：处理 "全部在一边" 规则
+    const sameTeamLabel = Object.entries(labelRules)
+      .find(([_, rule]) => String(rule) === 'same_team')?.[0];
+
+    if (sameTeamLabel) {
+      const sameTeamMembers: RoomMember[] = [];
+      const otherMembers: RoomMember[] = [];
+
+      for (const member of members) {
+        const memberLabels = member.labels || [];
+        if (memberLabels.includes(sameTeamLabel)) {
+          sameTeamMembers.push(member);
+        } else {
+          otherMembers.push(member);
+        }
+      }
+
+      // 随机决定这些人去 A 队还是 B 队
+      const goToTeamA = Math.random() < 0.5;
+      if (goToTeamA) {
+        teamA.push(...sameTeamMembers);
+      } else {
+        teamB.push(...sameTeamMembers);
+      }
+
+      // 剩余成员待分配
+      unassigned.push(...otherMembers);
+    } else {
+      unassigned.push(...members);
+    }
+
+    // 第二步：处理 "平均分到每一队" 规则
+    const evenLabels = Object.entries(labelRules)
+      .filter(([_, rule]) => String(rule) === 'even')
+      .map(([label]) => label);
+
+    // 对于每个需要平均分配的标签，按标签分组
+    const labelGroups: Map<string, RoomMember[]> = new Map();
+    const noLabelMembers: RoomMember[] = [];
+
+    for (const member of unassigned) {
+      const memberLabels = member.labels || [];
+      let hasEvenLabel = false;
+
+      for (const evenLabel of evenLabels) {
+        if (memberLabels.includes(evenLabel)) {
+          hasEvenLabel = true;
+          if (!labelGroups.has(evenLabel)) {
+            labelGroups.set(evenLabel, []);
+          }
+          labelGroups.get(evenLabel)!.push(member);
+          break; // 每个成员只按第一个匹配的标签分组
+        }
+      }
+
+      if (!hasEvenLabel) {
+        noLabelMembers.push(member);
+      }
+    }
+
+    // 对每个标签组进行平均分配
+    for (const [label, groupMembers] of labelGroups) {
+      // 打乱顺序
+      this.shuffle(groupMembers);
+
+      // 平均分配到两队
+      for (let i = 0; i < groupMembers.length; i++) {
+        if (teamA.length <= teamB.length) {
+          teamA.push(groupMembers[i]);
+        } else {
+          teamB.push(groupMembers[i]);
+        }
+      }
+    }
+
+    // 第三步：处理无特殊规则的成员
+    this.shuffle(noLabelMembers);
+
+    // 尽量保持两队人数平衡
+    for (const member of noLabelMembers) {
+      if (teamA.length <= teamB.length) {
+        teamA.push(member);
+      } else {
+        teamB.push(member);
+      }
+    }
+
+    return { teamA, teamB };
+  }
+
+  /**
+   * Fisher-Yates 洗牌算法
+   */
+  private shuffle<T>(array: T[]): void {
+    for (let i = array.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [array[i], array[j]] = [array[j], array[i]];
+    }
   }
 
   /**
@@ -357,6 +464,87 @@ export class RoomService {
   }
 
   /**
+   * 设置成员标签
+   */
+  async setMemberLabels(
+    userId: string,
+    roomCode: string,
+    memberId: string,
+    labels: string[],
+  ): Promise<void> {
+    const room = await this.getRoomByCode(roomCode);
+
+    // 验证是否为房主
+    if (room.ownerId !== userId) {
+      throw new ForbiddenException('只有房主才能设置成员标签');
+    }
+
+    // 验证标签是否有效
+    const validLabels = Object.values(MemberLabel);
+    for (const label of labels) {
+      if (!validLabels.includes(label as MemberLabel)) {
+        throw new BadRequestException(`无效的标签: ${label}`);
+      }
+    }
+
+    // 查找成员
+    const member = room.members.find((m) => m.userId === memberId);
+    if (!member) {
+      throw new BadRequestException('该成员不在房间中');
+    }
+
+    // 更新标签
+    await this.memberRepository.update(member.id, { labels });
+
+    // 推送更新事件
+    const updatedRoom = await this.getRoomByCode(roomCode);
+    await this.pusherService.memberJoined(roomCode, this.formatRoomData(updatedRoom));
+  }
+
+  /**
+   * 设置标签规则
+   */
+  async setLabelRules(
+    userId: string,
+    roomCode: string,
+    labelRules: LabelRulesConfig,
+  ): Promise<void> {
+    const room = await this.getRoomByCode(roomCode);
+
+    // 验证是否为房主
+    if (room.ownerId !== userId) {
+      throw new ForbiddenException('只有房主才能设置标签规则');
+    }
+
+    // 验证规则是否有效
+    const validRules = Object.values(LabelRule);
+    for (const [label, rule] of Object.entries(labelRules)) {
+      if (rule && !validRules.includes(rule as LabelRule)) {
+        throw new BadRequestException(`无效的规则: ${rule}`);
+      }
+    }
+
+    // 检查互斥逻辑：不能有多个标签同时设置为 "全部在一边"
+    const sameTeamLabels = Object.entries(labelRules)
+      .filter(([_, rule]) => rule === LabelRule.SAME_TEAM)
+      .map(([label]) => label);
+
+    if (sameTeamLabels.length > 1) {
+      throw new BadRequestException(
+        `以下标签不能同时设置为"全部在一边"：${sameTeamLabels.join('、')}，这可能导致分边冲突`,
+      );
+    }
+
+    // 更新规则
+    room.labelRules = labelRules;
+    await this.roomRepository.save(room);
+
+    // 推送更新事件
+    const updatedRoom = await this.getRoomByCode(roomCode);
+    await this.pusherService.memberJoined(roomCode, this.formatRoomData(updatedRoom));
+  }
+
+  /**
    * 格式化房间数据用于 Pusher 推送
    */
   private formatRoomData(room: Room) {
@@ -367,6 +555,7 @@ export class RoomService {
       status: room.status,
       maxMembers: room.maxMembers,
       ownerId: room.ownerId,
+      labelRules: room.labelRules || {},
       owner: room.owner ? {
         id: room.owner.id,
         nickname: room.owner.nickname,
@@ -377,6 +566,7 @@ export class RoomService {
         nickname: m.user.nickname,
         avatarUrl: m.user.avatarUrl,
         team: m.team,
+        labels: m.labels || [],
         joinedAt: m.joinedAt,
       })),
       memberCount: room.members.length,

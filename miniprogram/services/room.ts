@@ -3,6 +3,42 @@
  */
 import { get, post, del, request } from '../utils/request';
 
+// 标签规则类型
+export type LabelRule = 'none' | 'even' | 'same_team';
+
+// 标签规则配置
+export interface LabelRulesConfig {
+  god?: LabelRule;
+  sister?: LabelRule;
+  male?: LabelRule;
+  boss?: LabelRule;
+}
+
+// 成员标签类型
+export const MemberLabels = {
+  god: '幻神',
+  sister: '妹妹',
+  male: '男生',
+  boss: '老板',
+} as const;
+
+// 标签规则选项
+export const LabelRuleOptions = {
+  none: '无规则',
+  even: '平均分到每一队',
+  same_team: '全部在一边',
+} as const;
+
+// 房间成员
+export interface RoomMember {
+  id: string;
+  nickname: string;
+  avatarUrl: string;
+  team: 'none' | 'team_a' | 'team_b';
+  labels: string[];
+  joinedAt: string;
+}
+
 // 房间信息
 export interface Room {
   id: string;
@@ -11,6 +47,7 @@ export interface Room {
   status: 'waiting' | 'divided' | 'closed';
   maxMembers: number;
   ownerId: string;
+  labelRules: LabelRulesConfig;
   owner: {
     id: string;
     nickname: string;
@@ -19,15 +56,6 @@ export interface Room {
   members: RoomMember[];
   memberCount: number;
   createdAt: string;
-}
-
-// 房间成员
-export interface RoomMember {
-  id: string;
-  nickname: string;
-  avatarUrl: string;
-  team: 'none' | 'team_a' | 'team_b';
-  joinedAt: string;
 }
 
 // 分边结果
@@ -131,4 +159,25 @@ export async function redivideTeams(roomCode: string): Promise<DivisionResult> {
  */
 export async function getDivisionResult(roomCode: string): Promise<DivisionResult> {
   return get<DivisionResult>(`/room/${roomCode}/result`);
+}
+
+/**
+ * 设置成员标签
+ */
+export async function setMemberLabels(
+  roomCode: string,
+  memberId: string,
+  labels: string[],
+): Promise<void> {
+  return post(`/room/${roomCode}/member/${memberId}/labels`, { labels });
+}
+
+/**
+ * 设置标签规则
+ */
+export async function setLabelRules(
+  roomCode: string,
+  labelRules: LabelRulesConfig,
+): Promise<void> {
+  return post(`/room/${roomCode}/label-rules`, { labelRules });
 }

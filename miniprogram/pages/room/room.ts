@@ -6,11 +6,19 @@ import {
   divideTeams,
   redivideTeams,
   removeMember,
+  setMemberLabels,
+  setLabelRules,
   Room,
+  MemberLabels,
+  LabelRuleOptions,
+  LabelRulesConfig,
 } from '../../services/room';
 import { pusherClient } from '../../utils/pusher';
 
 const app = getApp<IAppOption>();
+
+// 标签键列表
+const labelKeys = Object.keys(MemberLabels) as (keyof typeof MemberLabels)[];
 
 Page({
   data: {
@@ -21,6 +29,24 @@ Page({
     selectedMemberId: '', // 选中的成员ID，用于显示删除图标
     emptySlots: [] as number[],
     loading: false,
+    // 标签相关
+    showLabelModal: false,
+    showRuleModal: false,
+    currentEditMember: null as any,
+    memberLabels: [] as string[],
+    labelOptions: Object.entries(MemberLabels).map(([key, value]) => ({
+      key,
+      name: value,
+      checked: false,
+    })),
+    ruleOptions: Object.entries(LabelRuleOptions).map(([key, value]) => ({
+      key,
+      name: value,
+    })),
+    labelRules: {} as LabelRulesConfig,
+    // 查看所有标签弹窗
+    showAllLabelsModal: false,
+    viewLabelsMember: null as any,
   },
 
   // Pusher 频道引用
@@ -365,6 +391,187 @@ Page({
       title: `快来加入【${room.gameName}】的分队房间！`,
       path: `/pages/room/room?roomCode=${room.roomCode}`,
     };
+  },
+
+  /**
+   * 长按成员头像打开标签设置
+   */
+  onMemberLongPress(e: any) {
+    const { isOwner, room } = this.data;
+    if (!isOwner) return;
+
+    const memberId = e.currentTarget.dataset.id;
+    const member = room.members.find((m) => m.id === memberId);
+    if (!member) return;
+
+    // 获取成员当前标签
+    const currentLabels = member.labels || [];
+
+    // 更新标签选项的选中状态
+    const labelOptions = this.data.labelOptions.map((opt) => ({
+      ...opt,
+      checked: currentLabels.includes(opt.key),
+    }));
+
+    this.setData({
+      showLabelModal: true,
+      currentEditMember: member,
+      memberLabels: [...currentLabels],
+      labelOptions,
+    });
+  },
+
+  /**
+   * 标签选中状态变化
+   */
+  onLabelChange(e: any) {
+    const key = e.currentTarget.dataset.key;
+    const { labelOptions, memberLabels } = this.data;
+
+    const newLabels = [...memberLabels];
+    const index = newLabels.indexOf(key);
+    if (index > -1) {
+      newLabels.splice(index, 1);
+    } else {
+      newLabels.push(key);
+    }
+
+    const newOptions = labelOptions.map((opt) => ({
+      ...opt,
+      checked: newLabels.includes(opt.key),
+    }));
+
+    this.setData({
+      memberLabels: newLabels,
+      labelOptions: newOptions,
+    });
+  },
+
+  /**
+   * 关闭标签设置弹窗
+   */
+  closeLabelModal() {
+    this.setData({
+      showLabelModal: false,
+      currentEditMember: null,
+      memberLabels: [],
+    });
+  },
+
+  /**
+   * 保存成员标签
+   */
+  async saveMemberLabels() {
+    const { room, currentEditMember, memberLabels, loading } = this.data;
+    if (loading || !currentEditMember) return;
+
+    this.setData({ loading: true });
+    try {
+      await setMemberLabels(room.roomCode, currentEditMember.id, memberLabels);
+      wx.showToast({ title: '标签已保存', icon: 'success' });
+      this.closeLabelModal();
+    } catch (error: any) {
+      wx.showToast({
+        title: error.message || '保存失败',
+        icon: 'none',
+      });
+    } finally {
+      this.setData({ loading: false });
+    }
+  },
+
+  /**
+   * 打开标签规则设置弹窗
+   */
+  openRuleModal() {
+    const { room } = this.data;
+    this.setData({
+      showRuleModal: true,
+      labelRules: { ...room.labelRules } || {},
+    });
+  },
+
+  /**
+   * 关闭标签规则设置弹窗
+   */
+  closeRuleModal() {
+    this.setData({
+      showRuleModal: false,
+    });
+  },
+
+  /**
+   * 规则选择变化
+   */
+  onRuleChange(e: any) {
+    const labelKey = e.currentTarget.dataset.label;
+    const ruleIndex = parseInt(e.detail.value);
+    const { ruleOptions, labelRules } = this.data;
+
+    // 获取对应的规则 key
+    const ruleKey = ruleOptions[ruleIndex]?.key || 'none';
+
+    this.setData({
+      labelRules: {
+        ...labelRules,
+        [labelKey]: ruleKey,
+      },
+    });
+  },
+
+  /**
+   * 保存标签规则
+   */
+  async saveLabelRules() {
+    const { room, labelRules, loading } = this.data;
+    if (loading) return;
+
+    this.setData({ loading: true });
+    try {
+      await setLabelRules(room.roomCode, labelRules);
+      wx.showToast({ title: '规则已保存', icon: 'success' });
+      this.closeRuleModal();
+    } catch (error: any) {
+      wx.showToast({
+        title: error.message || '保存失败',
+        icon: 'none',
+      });
+    } finally {
+      this.setData({ loading: false });
+    }
+  },
+
+  /**
+   * 点击标签查看成员所有标签
+   */
+  onLabelsTap(e: any) {
+    // 阻止事件冒泡到父元素的 onMemberTap
+    const member = e.currentTarget.dataset.member;
+    if (!member || !member.labels || member.labels.length === 0) return;
+
+    // 清除选中状态
+    this.setData({
+      selectedMemberId: '',
+      showAllLabelsModal: true,
+      viewLabelsMember: member,
+    });
+  },
+
+  /**
+   * 关闭查看所有标签弹窗
+   */
+  closeAllLabelsModal() {
+    this.setData({
+      showAllLabelsModal: false,
+      viewLabelsMember: null,
+    });
+  },
+
+  /**
+   * 阻止事件冒泡（空方法）
+   */
+  preventBubble() {
+    // 空方法，仅用于阻止事件冒泡
   },
 
   /**

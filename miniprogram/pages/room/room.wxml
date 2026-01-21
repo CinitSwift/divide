@@ -24,6 +24,11 @@
       <text class="member-count">{{room.memberCount}}/{{room.maxMembers}}</text>
     </view>
 
+    <!-- 房主提示：长按设置标签 -->
+    <view class="label-tip" wx:if="{{isOwner && room.status === 'waiting'}}">
+      <text>💡 长按成员头像可设置标签</text>
+    </view>
+
     <view class="members-grid">
       <view
         class="member-item {{selectedMemberId === item.id ? 'selected' : ''}}"
@@ -31,6 +36,7 @@
         wx:key="id"
         data-id="{{item.id}}"
         catchtap="onMemberTap"
+        bindlongpress="onMemberLongPress"
       >
         <view class="avatar-wrapper">
           <image
@@ -48,6 +54,16 @@
         </view>
         <text class="member-name">{{item.nickname || '用户'}}</text>
         <text class="owner-badge" wx:if="{{item.id === room.ownerId}}">房主</text>
+        <!-- 成员标签显示 -->
+        <view class="member-labels" wx:if="{{item.labels && item.labels.length > 0}}" data-member="{{item}}" data-id="{{item.id}}" catchtap="onLabelsTap" catchlongpress="onMemberLongPress">
+          <text class="label-tag label-{{item.labels[0]}}" wx:if="{{item.labels[0]}}">
+            {{item.labels[0] === 'god' ? '幻神' : item.labels[0] === 'sister' ? '妹妹' : item.labels[0] === 'male' ? '男生' : '老板'}}
+          </text>
+          <text class="label-tag label-{{item.labels[1]}}" wx:if="{{item.labels[1]}}">
+            {{item.labels[1] === 'god' ? '幻神' : item.labels[1] === 'sister' ? '妹妹' : item.labels[1] === 'male' ? '男生' : '老板'}}
+          </text>
+          <text class="label-tag label-more" wx:if="{{item.labels.length > 2}}">...</text>
+        </view>
       </view>
 
       <!-- 空位 -->
@@ -62,6 +78,15 @@
   <view class="action-section">
     <!-- 房主操作 -->
     <block wx:if="{{isOwner}}">
+      <!-- 标签规则设置按钮 -->
+      <button
+        class="btn btn-secondary rule-btn"
+        bindtap="openRuleModal"
+        wx:if="{{room.status === 'waiting'}}"
+      >
+        🏷️ 设置标签规则
+      </button>
+
       <button
         class="btn btn-success divide-btn"
         bindtap="handleDivide"
@@ -106,5 +131,92 @@
         离开房间
       </button>
     </block>
+  </view>
+</view>
+
+<!-- 成员标签设置弹窗 -->
+<view class="modal-mask" wx:if="{{showLabelModal}}" catchtap="closeLabelModal">
+  <view class="modal-content" catchtap="preventBubble">
+    <view class="modal-header">
+      <text class="modal-title">设置成员标签</text>
+      <text class="modal-subtitle">{{currentEditMember.nickname}}</text>
+    </view>
+    <view class="modal-body">
+      <view class="label-list">
+        <view
+          class="label-option {{item.checked ? 'checked' : ''}}"
+          wx:for="{{labelOptions}}"
+          wx:key="key"
+          data-key="{{item.key}}"
+          catchtap="onLabelChange"
+        >
+          <view class="label-checkbox">
+            <text wx:if="{{item.checked}}">✓</text>
+          </view>
+          <text class="label-name">{{item.name}}</text>
+        </view>
+      </view>
+    </view>
+    <view class="modal-footer">
+      <button class="modal-btn cancel" catchtap="closeLabelModal">取消</button>
+      <button class="modal-btn confirm" catchtap="saveMemberLabels" disabled="{{loading}}">保存</button>
+    </view>
+  </view>
+</view>
+
+<!-- 标签规则设置弹窗 -->
+<view class="modal-mask" wx:if="{{showRuleModal}}" catchtap="closeRuleModal">
+  <view class="modal-content rule-modal" catchtap="preventBubble">
+    <view class="modal-header">
+      <text class="modal-title">设置标签规则</text>
+      <text class="modal-subtitle">分边时将按规则分配队伍</text>
+    </view>
+    <view class="modal-body">
+      <view class="rule-list">
+        <view class="rule-item" wx:for="{{labelOptions}}" wx:key="key">
+          <text class="rule-label">{{item.name}}</text>
+          <picker
+            mode="selector"
+            range="{{ruleOptions}}"
+            range-key="name"
+            value="{{labelRules[item.key] === 'even' ? 1 : labelRules[item.key] === 'same_team' ? 2 : 0}}"
+            data-label="{{item.key}}"
+            bindchange="onRuleChange"
+          >
+            <view class="rule-picker">
+              <text>{{labelRules[item.key] === 'even' ? '平均分到每一队' : labelRules[item.key] === 'same_team' ? '全部在一边' : '无规则'}}</text>
+              <text class="picker-arrow">▼</text>
+            </view>
+          </picker>
+        </view>
+      </view>
+      <view class="rule-note">
+        <text>💡 注意：只能有一个标签设置为"全部在一边"</text>
+      </view>
+    </view>
+    <view class="modal-footer">
+      <button class="modal-btn cancel" catchtap="closeRuleModal">取消</button>
+      <button class="modal-btn confirm" catchtap="saveLabelRules" disabled="{{loading}}">保存</button>
+    </view>
+  </view>
+</view>
+
+<!-- 查看成员所有标签弹窗 -->
+<view class="modal-mask" wx:if="{{showAllLabelsModal}}" catchtap="closeAllLabelsModal">
+  <view class="modal-content all-labels-modal" catchtap="preventBubble">
+    <view class="modal-header">
+      <text class="modal-title">成员标签</text>
+      <text class="modal-subtitle">{{viewLabelsMember.nickname}}</text>
+    </view>
+    <view class="modal-body">
+      <view class="all-labels-list">
+        <text class="label-tag-big label-{{label}}" wx:for="{{viewLabelsMember.labels}}" wx:for-item="label" wx:key="*this">
+          {{label === 'god' ? '幻神' : label === 'sister' ? '妹妹' : label === 'male' ? '男生' : '老板'}}
+        </text>
+      </view>
+    </view>
+    <view class="modal-footer single-btn">
+      <button class="modal-btn confirm" catchtap="closeAllLabelsModal">知道了</button>
+    </view>
   </view>
 </view>

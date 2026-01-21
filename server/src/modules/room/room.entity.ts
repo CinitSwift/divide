@@ -17,6 +17,21 @@ export enum RoomStatus {
   CLOSED = 'closed',     // 已关闭
 }
 
+// 标签规则类型
+export enum LabelRule {
+  NONE = 'none',           // 无规则
+  EVEN = 'even',           // 平均分到每一队
+  SAME_TEAM = 'same_team', // 全部在一边
+}
+
+// 标签规则配置类型
+export interface LabelRulesConfig {
+  god?: LabelRule;
+  sister?: LabelRule;
+  male?: LabelRule;
+  boss?: LabelRule;
+}
+
 @Entity('room')
 export class Room {
   @PrimaryGeneratedColumn('uuid')
@@ -41,6 +56,15 @@ export class Room {
 
   @Column({ name: 'max_members', default: 10, comment: '最大人数' })
   maxMembers: number;
+
+  @Column({
+    type: 'simple-json',
+    nullable: true,
+    default: '{}',
+    name: 'label_rules',
+    comment: '标签规则配置',
+  })
+  labelRules: LabelRulesConfig;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

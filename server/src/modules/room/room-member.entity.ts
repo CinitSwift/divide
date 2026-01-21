@@ -16,6 +16,14 @@ export enum Team {
   TEAM_B = 'team_b',   // B队
 }
 
+// 成员标签类型
+export enum MemberLabel {
+  GOD = 'god',         // 幻神
+  SISTER = 'sister',   // 妹妹
+  MALE = 'male',       // 男生
+  BOSS = 'boss',       // 老板
+}
+
 @Entity('room_member')
 @Unique(['roomId', 'userId'])
 export class RoomMember {
@@ -35,6 +43,14 @@ export class RoomMember {
     comment: '分边结果',
   })
   team: Team;
+
+  @Column({
+    type: 'simple-array',
+    nullable: true,
+    default: '',
+    comment: '成员标签',
+  })
+  labels: string[];
 
   @CreateDateColumn({ name: 'joined_at' })
   joinedAt: Date;
