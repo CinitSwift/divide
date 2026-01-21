@@ -128,8 +128,11 @@
 
 .room-status {
   font-size: 26rpx;
-  padding: 6rpx 16rpx;
+  padding: 0 16rpx;
   border-radius: 6rpx;
+  height: 44rpx;
+  line-height: 44rpx;
+  text-align: center;
 }
 
 .status-waiting {

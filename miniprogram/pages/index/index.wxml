@@ -40,9 +40,7 @@
       </view>
       <view class="room-info">
         <text class="member-count">{{myRoom.memberCount}}/{{myRoom.maxMembers}} 人</text>
-        <text class="room-status status-{{myRoom.status}}">
-          {{myRoom.status === 'waiting' ? '等待中' : myRoom.status === 'divided' ? '已分边' : '已关闭'}}
-        </text>
+        <view class="room-status status-{{myRoom.status}}">{{myRoom.status === 'waiting' ? '等待中' : myRoom.status === 'divided' ? '已分边' : '已关闭'}}</view>
       </view>
     </view>
   </view>
@@ -57,9 +55,7 @@
       </view>
       <view class="room-info">
         <text class="member-count">{{joinedRoom.memberCount}}/{{joinedRoom.maxMembers}} 人</text>
-        <text class="room-status status-{{joinedRoom.status}}">
-          {{joinedRoom.status === 'waiting' ? '等待中' : joinedRoom.status === 'divided' ? '已分边' : '已关闭'}}
-        </text>
+        <view class="room-status status-{{joinedRoom.status}}">{{joinedRoom.status === 'waiting' ? '等待中' : joinedRoom.status === 'divided' ? '已分边' : '已关闭'}}</view>
       </view>
       <view class="room-owner">
         <text class="owner-label">房主:</text>
