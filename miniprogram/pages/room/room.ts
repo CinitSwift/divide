@@ -26,7 +26,6 @@ Page({
     roomCode: '',
     isOwner: false,
     isMember: false,
-    selectedMemberId: '', // 选中的成员ID，用于显示删除图标
     emptySlots: [] as number[],
     loading: false,
     // 标签相关
@@ -224,67 +223,31 @@ Page({
   },
 
   /**
-   * 点击成员头像（房主可选中成员以显示删除图标）
+   * 点击成员头像打开标签设置（仅房主）
    */
   onMemberTap(e: any) {
     const { isOwner, room } = this.data;
     if (!isOwner) return;
 
     const memberId = e.currentTarget.dataset.id;
-    // 不能选中自己（房主）
-    if (memberId === room.ownerId) return;
-
-    // 如果点击的是已选中的成员，取消选中
-    if (this.data.selectedMemberId === memberId) {
-      this.setData({ selectedMemberId: '' });
-    } else {
-      this.setData({ selectedMemberId: memberId });
-    }
-  },
-
-  /**
-   * 点击删除图标移除成员
-   */
-  async onRemoveMember(e: any) {
-    const memberId = e.currentTarget.dataset.id;
-    const { room, loading } = this.data;
-    if (loading) return;
-
-    // 找到成员信息
     const member = room.members.find((m) => m.id === memberId);
-    const memberName = member?.nickname || '该成员';
+    if (!member) return;
 
-    wx.showModal({
-      title: '确认移除',
-      content: `确定要将 ${memberName} 移出房间吗？`,
-      confirmColor: '#ff4d4f',
-      success: async (res) => {
-        if (res.confirm) {
-          this.setData({ loading: true });
-          try {
-            await removeMember(room.roomCode, memberId);
-            this.setData({ selectedMemberId: '' });
-            wx.showToast({ title: '已移除', icon: 'success' });
-          } catch (error: any) {
-            wx.showToast({
-              title: error.message || '移除失败',
-              icon: 'none',
-            });
-          } finally {
-            this.setData({ loading: false });
-          }
-        }
-      },
+    // 获取成员当前标签
+    const currentLabels = member.labels || [];
+
+    // 更新标签选项的选中状态
+    const labelOptions = this.data.labelOptions.map((opt) => ({
+      ...opt,
+      checked: currentLabels.includes(opt.key),
+    }));
+
+    this.setData({
+      showLabelModal: true,
+      currentEditMember: member,
+      memberLabels: [...currentLabels],
+      labelOptions,
     });
-  },
-
-  /**
-   * 点击页面其他区域取消选中
-   */
-  onContainerTap() {
-    if (this.data.selectedMemberId) {
-      this.setData({ selectedMemberId: '' });
-    }
   },
 
   /**
@@ -394,30 +357,41 @@ Page({
   },
 
   /**
-   * 长按成员头像打开标签设置
+   * 长按成员头像弹出删除确认（仅房主）
    */
   onMemberLongPress(e: any) {
-    const { isOwner, room } = this.data;
+    const { isOwner, room, loading } = this.data;
     if (!isOwner) return;
 
     const memberId = e.currentTarget.dataset.id;
+    // 不能删除自己（房主）
+    if (memberId === room.ownerId) return;
+
     const member = room.members.find((m) => m.id === memberId);
     if (!member) return;
 
-    // 获取成员当前标签
-    const currentLabels = member.labels || [];
+    const memberName = member.nickname || '该成员';
 
-    // 更新标签选项的选中状态
-    const labelOptions = this.data.labelOptions.map((opt) => ({
-      ...opt,
-      checked: currentLabels.includes(opt.key),
-    }));
-
-    this.setData({
-      showLabelModal: true,
-      currentEditMember: member,
-      memberLabels: [...currentLabels],
-      labelOptions,
+    wx.showModal({
+      title: '确认移除',
+      content: `确定要将 ${memberName} 移出房间吗？`,
+      confirmColor: '#ff4d4f',
+      success: async (res) => {
+        if (res.confirm) {
+          this.setData({ loading: true });
+          try {
+            await removeMember(room.roomCode, memberId);
+            wx.showToast({ title: '已移除', icon: 'success' });
+          } catch (error: any) {
+            wx.showToast({
+              title: error.message || '移除失败',
+              icon: 'none',
+            });
+          } finally {
+            this.setData({ loading: false });
+          }
+        }
+      },
     });
   },
 
@@ -549,9 +523,7 @@ Page({
     const member = e.currentTarget.dataset.member;
     if (!member || !member.labels || member.labels.length === 0) return;
 
-    // 清除选中状态
     this.setData({
-      selectedMemberId: '',
       showAllLabelsModal: true,
       viewLabelsMember: member,
     });

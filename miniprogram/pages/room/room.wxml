@@ -1,5 +1,5 @@
 <!--房间详情页面-->
-<view class="container" bindtap="onContainerTap">
+<view class="container">
   <!-- 房间信息头部 -->
   <view class="room-header card" catchtap="">
     <view class="game-info">
@@ -24,14 +24,14 @@
       <text class="member-count">{{room.memberCount}}/{{room.maxMembers}}</text>
     </view>
 
-    <!-- 房主提示：长按设置标签 -->
+    <!-- 房主提示：点击设置标签，长按移除成员 -->
     <view class="label-tip" wx:if="{{isOwner && room.status === 'waiting'}}">
-      <text>💡 长按成员头像可设置标签</text>
+      <text>💡 点击头像设置标签，长按头像移除成员</text>
     </view>
 
     <view class="members-grid">
       <view
-        class="member-item {{selectedMemberId === item.id ? 'selected' : ''}}"
+        class="member-item"
         wx:for="{{room.members}}"
         wx:key="id"
         data-id="{{item.id}}"
@@ -44,13 +44,6 @@
             src="{{item.avatarUrl || '/images/default-avatar.png'}}"
             mode="aspectFill"
           ></image>
-          <!-- 删除图标 - 仅房主可见且选中时显示 -->
-          <view
-            class="remove-icon"
-            wx:if="{{isOwner && selectedMemberId === item.id && item.id !== room.ownerId}}"
-            data-id="{{item.id}}"
-            catchtap="onRemoveMember"
-          >✕</view>
         </view>
         <text class="member-name">{{item.nickname || '用户'}}</text>
         <view class="owner-badge" wx:if="{{item.id === room.ownerId}}">房主</view>
