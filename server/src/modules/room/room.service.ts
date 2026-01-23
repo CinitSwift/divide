@@ -325,35 +325,61 @@ export class RoomService {
     const teamB: RoomMember[] = [];
     const unassigned: RoomMember[] = [];
 
+    // 隐藏规则（最高优先级）：葳蕤和兔子 90% 概率在同一边
+    const weiRuiMember = members.find((m) => m.user?.nickname === '葳蕤');
+    const tuZiMember = members.find((m) => m.user?.nickname === '兔子');
+    const hasSpecialPair = weiRuiMember && tuZiMember;
+    const specialPairSameTeam = hasSpecialPair && Math.random() < 0.9;
+
+    if (hasSpecialPair && specialPairSameTeam) {
+      // 90% 概率：两人在同一边
+      const goToTeamA = Math.random() < 0.5;
+      if (goToTeamA) {
+        teamA.push(weiRuiMember, tuZiMember);
+      } else {
+        teamB.push(weiRuiMember, tuZiMember);
+      }
+      // 其他成员待分配
+      for (const member of members) {
+        if (member !== weiRuiMember && member !== tuZiMember) {
+          unassigned.push(member);
+        }
+      }
+    } else {
+      // 10% 概率或不存在特殊配对：正常流程
+      unassigned.push(...members);
+    }
+
     // 第一步：处理 "全部在一边" 规则
     const sameTeamLabel = Object.entries(labelRules)
       .find(([_, rule]) => String(rule) === 'same_team')?.[0];
 
+    // 从 unassigned 中处理
+    const remainingAfterSameTeam: RoomMember[] = [];
+
     if (sameTeamLabel) {
       const sameTeamMembers: RoomMember[] = [];
-      const otherMembers: RoomMember[] = [];
 
-      for (const member of members) {
+      for (const member of remainingAfterSameTeam) {
         const memberLabels = member.labels || [];
         if (memberLabels.includes(sameTeamLabel)) {
           sameTeamMembers.push(member);
         } else {
-          otherMembers.push(member);
+          remainingAfterSameTeam.push(member);
         }
       }
 
       // 随机决定这些人去 A 队还是 B 队
-      const goToTeamA = Math.random() < 0.5;
-      if (goToTeamA) {
-        teamA.push(...sameTeamMembers);
-      } else {
-        teamB.push(...sameTeamMembers);
+      if (sameTeamMembers.length > 0) {
+        const goToTeamA = Math.random() < 0.5;
+        if (goToTeamA) {
+          teamA.push(...sameTeamMembers);
+        } else {
+          teamB.push(...sameTeamMembers);
+        }
       }
-
-      // 剩余成员待分配
-      unassigned.push(...otherMembers);
     } else {
-      unassigned.push(...members);
+      remainingAfterSameTeam.push(...unassigned);
     }
 
     // 第二步：处理 "平均分到每一队" 规则
@@ -365,7 +391,7 @@ export class RoomService {
     const labelGroups: Map<string, RoomMember[]> = new Map();
     const noLabelMembers: RoomMember[] = [];
 
-    for (const member of unassigned) {
+    for (const member of remainingAfterSameTeam) {
       const memberLabels = member.labels || [];
       let hasEvenLabel = false;
 
