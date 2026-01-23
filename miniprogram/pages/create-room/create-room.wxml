@@ -9,7 +9,7 @@
         class="input"
         type="text"
         maxlength="30"
-        placeholder="请输入游戏名称，如：王者荣耀5v5"
+        placeholder="请输入游戏名称，如：英雄联盟5v5"
         value="{{gameName}}"
         bindinput="onGameNameInput"
       />

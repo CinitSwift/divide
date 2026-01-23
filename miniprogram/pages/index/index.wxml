@@ -5,7 +5,6 @@
     <image class="avatar avatar-large" src="{{userInfo.avatarUrl || '/images/default-avatar.png'}}" mode="aspectFill"></image>
     <view class="user-info">
       <text class="nickname">{{userInfo.nickname || '游客用户'}}</text>
-      <text class="welcome">欢迎使用游戏分队平台</text>
     </view>
   </view>
 
