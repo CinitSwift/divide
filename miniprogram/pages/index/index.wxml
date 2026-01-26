@@ -2,7 +2,8 @@
 <view class="container">
   <!-- 用户信息 -->
   <view class="user-card card" bindtap="goEditProfile">
-    <image class="avatar avatar-large" src="{{userInfo.avatarUrl || '/images/default-avatar.png'}}" mode="aspectFill"></image>
+    <image wx:if="{{userInfo.avatarUrl}}" class="avatar avatar-large" src="{{userInfo.avatarUrl}}" mode="aspectFill"></image>
+    <view wx:else class="avatar avatar-large avatar-emoji">😊</view>
     <view class="user-info">
       <text class="nickname">{{userInfo.nickname || '游客用户'}}</text>
       <text class="edit-hint">点击修改资料</text>

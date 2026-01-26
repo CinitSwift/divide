@@ -112,6 +112,14 @@
   box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);
 }
 
+.member-avatar.avatar-emoji {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
+  font-size: 44rpx;
+}
+
 .team-a .member-avatar {
   border-color: rgba(24, 144, 255, 0.3);
 }

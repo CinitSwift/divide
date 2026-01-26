@@ -16,10 +16,12 @@
       <view class="team-members">
         <view class="team-member" wx:for="{{teamA}}" wx:key="id">
           <image
+            wx:if="{{item.avatarUrl}}"
             class="member-avatar"
-            src="{{item.avatarUrl || '/images/default-avatar.png'}}"
+            src="{{item.avatarUrl}}"
             mode="aspectFill"
           ></image>
+          <view wx:else class="member-avatar avatar-emoji">😊</view>
           <text class="member-name">{{item.nickname || '用户'}}</text>
         </view>
         <view class="empty-tip" wx:if="{{teamA.length === 0}}">
@@ -43,10 +45,12 @@
       <view class="team-members">
         <view class="team-member" wx:for="{{teamB}}" wx:key="id">
           <image
+            wx:if="{{item.avatarUrl}}"
             class="member-avatar"
-            src="{{item.avatarUrl || '/images/default-avatar.png'}}"
+            src="{{item.avatarUrl}}"
             mode="aspectFill"
           ></image>
+          <view wx:else class="member-avatar avatar-emoji">😊</view>
           <text class="member-name">{{item.nickname || '用户'}}</text>
         </view>
         <view class="empty-tip" wx:if="{{teamB.length === 0}}">

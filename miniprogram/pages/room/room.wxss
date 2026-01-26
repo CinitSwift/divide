@@ -175,6 +175,14 @@
   background: #e0e0e0;
 }
 
+.member-avatar.avatar-emoji {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
+  font-size: 48rpx;
+}
+
 /* 删除图标 */
 .remove-icon {
   position: absolute;

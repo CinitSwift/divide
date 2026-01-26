@@ -111,6 +111,19 @@ page {
   height: 120rpx;
 }
 
+/* emoji 头像 */
+.avatar-emoji {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
+  font-size: 48rpx;
+}
+
+.avatar-large.avatar-emoji {
+  font-size: 64rpx;
+}
+
 /* Flex 布局 */
 .flex {
   display: flex;

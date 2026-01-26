@@ -45,10 +45,12 @@
       >
         <view class="avatar-wrapper">
           <image
+            wx:if="{{item.avatarUrl}}"
             class="member-avatar"
-            src="{{item.avatarUrl || '/images/default-avatar.png'}}"
+            src="{{item.avatarUrl}}"
             mode="aspectFill"
           ></image>
+          <view wx:else class="member-avatar avatar-emoji">😊</view>
         </view>
         <text class="member-name">{{item.nickname || '用户'}}</text>
         <view class="owner-badge" wx:if="{{item.id === room.ownerId}}">房主</view>
