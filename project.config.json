@@ -46,7 +46,7 @@
     "swc": false,
     "disableSWC": true
   },
-  "appid": "wxd387b520983f67e2",
+  "appid": "",
   "projectname": "game-team-divider",
   "description": "游戏分队平台小程序",
   "libVersion": "2.30.0",
