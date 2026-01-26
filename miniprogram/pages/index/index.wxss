@@ -24,6 +24,11 @@
   margin-bottom: 8rpx;
 }
 
+.edit-hint {
+  font-size: 24rpx;
+  color: #999;
+}
+
 .welcome {
   font-size: 26rpx;
   color: #999;

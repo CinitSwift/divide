@@ -25,9 +25,18 @@ Page({
   },
 
   onShow() {
-    // 每次显示页面时刷新房间信息
+    // 每次显示页面时刷新用户信息和房间信息
+    const userInfo = wx.getStorageSync('userInfo');
+    this.setData({ userInfo });
     this.loadMyRoom();
     this.loadJoinedRoom();
+  },
+
+  /**
+   * 跳转到修改资料页
+   */
+  goEditProfile() {
+    wx.navigateTo({ url: '/pages/profile-setup/profile-setup' });
   },
 
   /**

@@ -97,9 +97,14 @@ Page({
         icon: 'success',
       });
 
-      // 跳转到首页
+      // 返回上一页（如果有上一页），否则跳转到首页
       setTimeout(() => {
-        wx.redirectTo({ url: '/pages/index/index' });
+        const pages = getCurrentPages();
+        if (pages.length > 1) {
+          wx.navigateBack();
+        } else {
+          wx.redirectTo({ url: '/pages/index/index' });
+        }
       }, 500);
     } catch (error: any) {
       console.error('保存失败:', error);
