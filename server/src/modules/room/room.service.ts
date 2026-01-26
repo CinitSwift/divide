@@ -360,7 +360,7 @@ export class RoomService {
     if (sameTeamLabel) {
       const sameTeamMembers: RoomMember[] = [];
 
-      for (const member of remainingAfterSameTeam) {
+      for (const member of unassigned) {
         const memberLabels = member.labels || [];
         if (memberLabels.includes(sameTeamLabel)) {
           sameTeamMembers.push(member);
