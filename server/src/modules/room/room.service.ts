@@ -315,7 +315,7 @@ export class RoomService {
   }
 
   /**
-   * 带规则的分边算法
+   * 带规则的分边算法（优化版：处理多标签成员）
    */
   private divideWithRules(
     members: RoomMember[],
@@ -382,51 +382,92 @@ export class RoomService {
       remainingAfterSameTeam.push(...unassigned);
     }
 
-    // 第二步：处理 "平均分到每一队" 规则
+    // 第二步：处理 "平均分到每一队" 规则（优化版：全局平衡）
     const evenLabels = Object.entries(labelRules)
       .filter(([_, rule]) => String(rule) === 'even')
       .map(([label]) => label);
 
-    // 对于每个需要平均分配的标签，按标签分组
-    const labelGroups: Map<string, RoomMember[]> = new Map();
-    const noLabelMembers: RoomMember[] = [];
+    // 为每个成员统计其拥有的需要平均分配的标签
+    interface MemberWithLabels {
+      member: RoomMember;
+      evenLabels: string[]; // 该成员拥有的需要平均分配的标签
+    }
 
-    for (const member of remainingAfterSameTeam) {
-      const memberLabels = member.labels || [];
-      let hasEvenLabel = false;
+    const membersWithLabels: MemberWithLabels[] = remainingAfterSameTeam.map((member) => ({
+      member,
+      evenLabels: (member.labels || []).filter((label) => evenLabels.includes(label)),
+    }));
 
-      for (const evenLabel of evenLabels) {
-        if (memberLabels.includes(evenLabel)) {
-          hasEvenLabel = true;
-          if (!labelGroups.has(evenLabel)) {
-            labelGroups.set(evenLabel, []);
-          }
-          labelGroups.get(evenLabel)!.push(member);
-          break; // 每个成员只按第一个匹配的标签分组
+    // 按拥有的平均分配标签数量降序排序（多标签成员优先处理）
+    membersWithLabels.sort((a, b) => b.evenLabels.length - a.evenLabels.length);
+
+    // 记录每个标签在各队的数量
+    const labelCountA: Map<string, number> = new Map();
+    const labelCountB: Map<string, number> = new Map();
+
+    // 初始化已分配成员的标签计数（处理隐藏规则和 same_team 规则分配的成员）
+    for (const member of teamA) {
+      for (const label of member.labels || []) {
+        if (evenLabels.includes(label)) {
+          labelCountA.set(label, (labelCountA.get(label) || 0) + 1);
         }
       }
-
-      if (!hasEvenLabel) {
-        noLabelMembers.push(member);
+    }
+    for (const member of teamB) {
+      for (const label of member.labels || []) {
+        if (evenLabels.includes(label)) {
+          labelCountB.set(label, (labelCountB.get(label) || 0) + 1);
+        }
       }
     }
 
-    // 对每个标签组进行平均分配
-    for (const [label, groupMembers] of labelGroups) {
-      // 打乱顺序
-      this.shuffle(groupMembers);
+    // 分配成员，考虑所有标签的平衡
+    for (const { member, evenLabels: memberEvenLabels } of membersWithLabels) {
+      if (memberEvenLabels.length === 0) {
+        // 无特殊标签，稍后处理
+        continue;
+      }
 
-      // 平均分配到两队
-      for (let i = 0; i < groupMembers.length; i++) {
-        if (teamA.length <= teamB.length) {
-          teamA.push(groupMembers[i]);
-        } else {
-          teamB.push(groupMembers[i]);
+      // 计算分配到 A 队和 B 队的"不平衡分数"
+      // 分数越高表示分配后越不平衡，选择分数低的队伍
+      let scoreA = 0;
+      let scoreB = 0;
+
+      for (const label of memberEvenLabels) {
+        const countA = labelCountA.get(label) || 0;
+        const countB = labelCountB.get(label) || 0;
+
+        // 如果分到 A 队，A 队该标签数量会 +1
+        // 不平衡程度 = |新A数量 - B数量|
+        scoreA += Math.abs((countA + 1) - countB);
+        // 如果分到 B 队，B 队该标签数量会 +1
+        scoreB += Math.abs(countA - (countB + 1));
+      }
+
+      // 同时考虑队伍人数平衡
+      const teamSizePenalty = 2; // 人数差异的权重
+      scoreA += Math.abs((teamA.length + 1) - teamB.length) * teamSizePenalty;
+      scoreB += Math.abs(teamA.length - (teamB.length + 1)) * teamSizePenalty;
+
+      // 选择分数较低的队伍（更平衡）
+      if (scoreA <= scoreB) {
+        teamA.push(member);
+        for (const label of memberEvenLabels) {
+          labelCountA.set(label, (labelCountA.get(label) || 0) + 1);
+        }
+      } else {
+        teamB.push(member);
+        for (const label of memberEvenLabels) {
+          labelCountB.set(label, (labelCountB.get(label) || 0) + 1);
         }
       }
     }
 
     // 第三步：处理无特殊规则的成员
+    const noLabelMembers = membersWithLabels
+      .filter(({ evenLabels }) => evenLabels.length === 0)
+      .map(({ member }) => member);
+
     this.shuffle(noLabelMembers);
 
     // 尽量保持两队人数平衡
