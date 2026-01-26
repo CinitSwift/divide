@@ -32,6 +32,20 @@ export interface LabelRulesConfig {
   boss?: LabelRule;
 }
 
+// 分边结果成员类型
+export interface DivisionMember {
+  id: string;
+  nickname: string;
+  avatarUrl: string;
+  labels?: string[];
+}
+
+// 分边结果类型
+export interface DivisionResult {
+  teamA: DivisionMember[];
+  teamB: DivisionMember[];
+}
+
 @Entity('room')
 export class Room {
   @PrimaryGeneratedColumn('uuid')
@@ -65,6 +79,14 @@ export class Room {
     comment: '标签规则配置',
   })
   labelRules: LabelRulesConfig;
+
+  @Column({
+    type: 'simple-json',
+    nullable: true,
+    name: 'division_result',
+    comment: '分边结果',
+  })
+  divisionResult: DivisionResult;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

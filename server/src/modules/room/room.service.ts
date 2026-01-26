@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Room, RoomStatus, LabelRule, LabelRulesConfig } from './room.entity';
+import { Room, RoomStatus, LabelRule, LabelRulesConfig, DivisionResult } from './room.entity';
 import { RoomMember, Team, MemberLabel } from './room-member.entity';
 import { CreateRoomDto } from './dto';
 import { UserService } from '../user/user.service';
@@ -287,12 +287,8 @@ export class RoomService {
       await this.memberRepository.update(member.id, { team: Team.TEAM_B });
     }
 
-    // 更新房间状态
-    room.status = RoomStatus.DIVIDED;
-    await this.roomRepository.save(room);
-
-    // 返回分边结果
-    const result = {
+    // 更新房间状态和分边结果
+    const result: DivisionResult = {
       teamA: teamA.map((m) => ({
         id: m.user.id,
         nickname: m.user.nickname,
@@ -306,6 +302,10 @@ export class RoomService {
         labels: m.labels || [],
       })),
     };
+
+    room.status = RoomStatus.DIVIDED;
+    room.divisionResult = result;
+    await this.roomRepository.save(room);
 
     // 推送分边完成事件
     const updatedRoom = await this.getRoomByCode(roomCode);
@@ -476,16 +476,22 @@ export class RoomService {
   /**
    * 获取分边结果
    */
-  async getDivisionResult(roomCode: string): Promise<{ teamA: any[]; teamB: any[] }> {
+  async getDivisionResult(roomCode: string): Promise<DivisionResult> {
     const room = await this.getRoomByCode(roomCode);
 
-    // 使用字符串比较，因为从数据库读取的枚举值可能是字符串
+    // 优先从 divisionResult 字段获取
+    if (room.divisionResult) {
+      return room.divisionResult;
+    }
+
+    // 兼容旧数据：从成员的 team 字段获取
     const teamA = room.members
       .filter((m) => String(m.team) === 'team_a')
       .map((m) => ({
         id: m.user.id,
         nickname: m.user.nickname,
         avatarUrl: m.user.avatarUrl,
+        labels: m.labels || [],
       }));
 
     const teamB = room.members
@@ -494,6 +500,7 @@ export class RoomService {
         id: m.user.id,
         nickname: m.user.nickname,
         avatarUrl: m.user.avatarUrl,
+        labels: m.labels || [],
       }));
 
     return { teamA, teamB };
@@ -606,6 +613,7 @@ export class RoomService {
         joinedAt: m.joinedAt,
       })),
       memberCount: room.members.length,
+      divisionResult: room.divisionResult || null,
       createdAt: room.createdAt,
     };
   }
