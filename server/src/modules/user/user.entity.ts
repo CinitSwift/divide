@@ -22,7 +22,7 @@ export class User {
   @Column({ length: 64, nullable: true, comment: '用户昵称' })
   nickname: string;
 
-  @Column({ name: 'avatar_url', length: 512, nullable: true, comment: '头像URL' })
+  @Column({ name: 'avatar_url', type: 'text', nullable: true, comment: '头像URL或Base64' })
   avatarUrl: string;
 
   @CreateDateColumn({ name: 'created_at' })
