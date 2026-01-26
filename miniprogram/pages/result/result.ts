@@ -4,6 +4,7 @@ import {
   redivideTeams,
   Room,
 } from '../../services/room';
+import { pusherClient } from '../../utils/pusher';
 
 interface TeamMember {
   id: string;
@@ -21,6 +22,9 @@ Page({
     roomCode: '',
   },
 
+  // Pusher 频道引用
+  _pusherChannel: null as any,
+
   /**
    * 页面加载
    */
@@ -34,6 +38,56 @@ Page({
 
     this.setData({ roomCode });
     await this.loadData(roomCode);
+    this.subscribePusher(roomCode);
+  },
+
+  /**
+   * 页面卸载
+   */
+  onUnload() {
+    this.unsubscribePusher();
+  },
+
+  /**
+   * 订阅 Pusher 频道
+   */
+  subscribePusher(roomCode: string) {
+    // 连接 Pusher
+    pusherClient.connect();
+
+    // 订阅房间频道
+    const channelName = `room-${roomCode}`;
+    this._pusherChannel = pusherClient.subscribe(channelName);
+
+    // 监听重新分边事件
+    this._pusherChannel.bind('teams-divided', (data: { room: Room; result: any }) => {
+      console.log('[Pusher] Teams re-divided:', data);
+      // 更新分边结果
+      this.setData({
+        teamA: data.result.teamA,
+        teamB: data.result.teamB,
+      });
+      wx.showToast({ title: '已重新分边', icon: 'success' });
+    });
+
+    // 监听房间关闭事件
+    this._pusherChannel.bind('room-closed', () => {
+      console.log('[Pusher] Room closed');
+      this.unsubscribePusher();
+      wx.showToast({ title: '房间已关闭', icon: 'none' });
+      setTimeout(() => wx.navigateBack(), 1000);
+    });
+  },
+
+  /**
+   * 取消订阅 Pusher 频道
+   */
+  unsubscribePusher() {
+    const { roomCode } = this.data;
+    if (roomCode) {
+      pusherClient.unsubscribe(`room-${roomCode}`);
+    }
+    this._pusherChannel = null;
   },
 
   /**
