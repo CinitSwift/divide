@@ -125,17 +125,19 @@ export function imageToBase64(filePath: string): Promise<string> {
 
 /**
  * 压缩图片后转为 base64（推荐使用）
- * 先用微信原生 API 压缩，再转 base64
+ * 使用 Canvas 精确控制尺寸和质量，生成较小的 base64
  * @param filePath 图片临时路径
- * @param quality 压缩质量 0-100，默认 60
+ * @param quality 压缩质量 0-100，默认 50
  * @returns Promise<string> base64 字符串
  */
 export async function compressAndConvertToBase64(
   filePath: string,
-  quality: number = 60
+  quality: number = 50
 ): Promise<string> {
-  // 先压缩图片
-  const compressedPath = await compressImage(filePath, quality);
-  // 再转为 base64
-  return imageToBase64(compressedPath);
+  // 使用 Canvas 压缩到小尺寸
+  return compressImageToBase64(filePath, {
+    maxWidth: 100,
+    maxHeight: 100,
+    quality: quality / 100,
+  });
 }
