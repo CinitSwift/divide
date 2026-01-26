@@ -44,7 +44,7 @@ Page({
 
     try {
       // 压缩图片并转为 base64
-      const base64Avatar = await compressAndConvertToBase64(avatarUrl, 60);
+      const base64Avatar = await compressAndConvertToBase64(avatarUrl, 40);
       this.setData({ avatarUrl: base64Avatar });
       this.checkCanSave();
     } catch (error) {
