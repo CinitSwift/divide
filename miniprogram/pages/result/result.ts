@@ -75,7 +75,9 @@ Page({
       console.log('[Pusher] Room closed');
       this.unsubscribePusher();
       wx.showToast({ title: '房间已关闭', icon: 'none' });
-      setTimeout(() => wx.navigateBack(), 1000);
+      setTimeout(() => {
+        wx.reLaunch({ url: '/pages/index/index' });
+      }, 1000);
     });
   },
 

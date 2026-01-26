@@ -107,15 +107,19 @@ Page({
         });
       }
 
-      // 如果房间已关闭，返回上一页
+      // 如果房间已关闭，返回首页
       if (room.status === 'closed') {
         this.unsubscribePusher();
         wx.showToast({ title: '房间已关闭', icon: 'none' });
-        setTimeout(() => wx.navigateBack(), 1000);
+        setTimeout(() => {
+          wx.reLaunch({ url: '/pages/index/index' });
+        }, 1000);
       }
     } catch (error: any) {
       wx.showToast({ title: error.message || '加载失败', icon: 'none' });
-      setTimeout(() => wx.navigateBack(), 1000);
+      setTimeout(() => {
+        wx.reLaunch({ url: '/pages/index/index' });
+      }, 1000);
     }
   },
 
@@ -164,7 +168,9 @@ Page({
       console.log('[Pusher] Room closed');
       this.unsubscribePusher();
       wx.showToast({ title: '房间已关闭', icon: 'none' });
-      setTimeout(() => wx.navigateBack(), 1000);
+      setTimeout(() => {
+        wx.reLaunch({ url: '/pages/index/index' });
+      }, 1000);
     });
 
     // 监听分边完成事件
