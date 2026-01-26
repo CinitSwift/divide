@@ -2,6 +2,10 @@
 <view class="container">
   <!-- 房间信息头部 -->
   <view class="room-header card" catchtap="">
+    <!-- 顶部操作按钮 -->
+    <view class="header-actions">
+      <button class="share-icon-btn" open-type="share">📤</button>
+    </view>
     <view class="game-info">
       <text class="game-name">🎮 {{room.gameName}}</text>
       <view class="room-code-box" bindtap="copyRoomCode">
@@ -14,6 +18,7 @@
       <view class="status-tag status-{{room.status}}">
         {{room.status === 'waiting' ? '等待中' : room.status === 'divided' ? '已分边' : '已关闭'}}
       </view>
+      <view class="close-room-btn" wx:if="{{isOwner}}" bindtap="handleCloseRoom">关闭房间</view>
     </view>
   </view>
 
@@ -71,29 +76,31 @@
   <view class="action-section">
     <!-- 房主操作 -->
     <block wx:if="{{isOwner}}">
-      <!-- 标签规则设置按钮 -->
-      <button
-        class="btn btn-secondary rule-btn"
-        bindtap="openRuleModal"
-        wx:if="{{room.status === 'waiting'}}"
-      >
-        🏷️ 设置标签规则
-      </button>
+      <!-- 标签规则 + 分边按钮 同行 -->
+      <view class="action-row" wx:if="{{room.status === 'waiting'}}">
+        <button
+          class="btn btn-secondary rule-btn"
+          bindtap="openRuleModal"
+        >
+          🏷️ 设置标签规则
+        </button>
+        <button
+          class="btn btn-success divide-btn"
+          bindtap="handleDivide"
+          disabled="{{room.memberCount < 2 || loading}}"
+        >
+          🎲 开始分边
+        </button>
+      </view>
 
+      <!-- 已分边状态，只显示重新分边 -->
       <button
         class="btn btn-success divide-btn"
         bindtap="handleDivide"
-        disabled="{{room.memberCount < 2 || loading}}"
+        disabled="{{loading}}"
+        wx:if="{{room.status === 'divided'}}"
       >
-        🎲 {{room.status === 'divided' ? '重新分边' : '开始分边'}}
-      </button>
-
-      <button class="btn btn-secondary share-btn" open-type="share">
-        📤 邀请好友
-      </button>
-
-      <button class="btn btn-danger close-btn" bindtap="handleCloseRoom">
-        关闭房间
+        🎲 重新分边
       </button>
     </block>
 
