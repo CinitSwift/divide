@@ -530,6 +530,232 @@ export class RoomService {
   }
 
   /**
+   * CSP 精确求解：枚举所有 2^n 种分配，找到最优解
+   * @param members 待分配的成员列表（已排除受保护成员）
+   * @param evenLabels 需要平均分配的标签
+   * @param sameTeamLabel 需要在同一队的标签（可为 null）
+   * @param protectedAssignment 已预分配的成员
+   * @param debug 是否记录调试日志
+   */
+  private solveWithCSP(
+    members: RoomMember[],
+    evenLabels: string[],
+    sameTeamLabel: string | null,
+    protectedAssignment: { teamA: RoomMember[]; teamB: RoomMember[] } | null,
+    debug: boolean = false,
+  ): DivisionResultInternal {
+    const logs: DivisionLog[] = [];
+    const n = members.length;
+
+    // 边界：如果没有剩余成员需要分配
+    if (n === 0 && protectedAssignment) {
+      return {
+        teamA: [...protectedAssignment.teamA],
+        teamB: [...protectedAssignment.teamB],
+        logs: debug ? logs : undefined,
+      };
+    }
+
+    let bestResult: { teamA: RoomMember[]; teamB: RoomMember[] } | null = null;
+    let bestScore = Infinity;
+
+    // 枚举所有 2^n 种分配
+    const totalCombinations = 1 << n;
+
+    for (let mask = 0; mask < totalCombinations; mask++) {
+      // 初始化时包含受保护的成员
+      const teamA: RoomMember[] = protectedAssignment
+        ? [...protectedAssignment.teamA]
+        : [];
+      const teamB: RoomMember[] = protectedAssignment
+        ? [...protectedAssignment.teamB]
+        : [];
+
+      // 根据 mask 分配剩余成员
+      for (let i = 0; i < n; i++) {
+        if ((mask >> i) & 1) {
+          teamA.push(members[i]);
+        } else {
+          teamB.push(members[i]);
+        }
+      }
+
+      // 检查 SAME_TEAM 硬性约束
+      if (sameTeamLabel) {
+        const inA = teamA.some((m) => m.labels?.includes(sameTeamLabel));
+        const inB = teamB.some((m) => m.labels?.includes(sameTeamLabel));
+        if (inA && inB) continue; // 违反约束，跳过
+      }
+
+      const score = this.calculateScore(teamA, teamB, evenLabels);
+
+      if (score < bestScore) {
+        bestScore = score;
+        bestResult = { teamA: [...teamA], teamB: [...teamB] };
+      }
+    }
+
+    if (debug && bestResult) {
+      logs.push({
+        step: 1,
+        action: 'final',
+        description: `CSP found optimal solution with score ${bestScore} (checked ${totalCombinations} combinations)`,
+        teamA: bestResult.teamA.map((m) => m.user?.nickname || m.userId),
+        teamB: bestResult.teamB.map((m) => m.user?.nickname || m.userId),
+        score: bestScore,
+      });
+    }
+
+    return bestResult
+      ? { ...bestResult, logs: debug ? logs : undefined }
+      : { teamA: [], teamB: [], logs: debug ? logs : undefined };
+  }
+
+  /**
+   * 贪心 + 2-opt 局部优化算法
+   * 用于成员数 > 12 时的回退方案
+   */
+  private greedyWithTwoOpt(
+    members: RoomMember[],
+    evenLabels: string[],
+    sameTeamLabel: string | null,
+    protectedAssignment: { teamA: RoomMember[]; teamB: RoomMember[] } | null,
+    debug: boolean = false,
+    maxIterations: number = 100,
+  ): DivisionResultInternal {
+    const logs: DivisionLog[] = [];
+
+    // Step 1: 初始化队伍
+    const teamA: RoomMember[] = protectedAssignment
+      ? [...protectedAssignment.teamA]
+      : [];
+    const teamB: RoomMember[] = protectedAssignment
+      ? [...protectedAssignment.teamB]
+      : [];
+    const protectedIds = new Set([...teamA, ...teamB].map((m) => m.id));
+
+    // 处理 SAME_TEAM 成员
+    const remaining: RoomMember[] = [];
+    let sameTeamTarget: 'A' | 'B' | null = null;
+
+    if (sameTeamLabel) {
+      const inA = teamA.some((m) => m.labels?.includes(sameTeamLabel));
+      const inB = teamB.some((m) => m.labels?.includes(sameTeamLabel));
+      if (inA) sameTeamTarget = 'A';
+      else if (inB) sameTeamTarget = 'B';
+      else sameTeamTarget = Math.random() < 0.5 ? 'A' : 'B';
+    }
+
+    for (const member of members) {
+      if (protectedIds.has(member.id)) continue;
+
+      if (sameTeamLabel && member.labels?.includes(sameTeamLabel)) {
+        if (sameTeamTarget === 'A') {
+          teamA.push(member);
+        } else {
+          teamB.push(member);
+        }
+        protectedIds.add(member.id); // SAME_TEAM 成员也受保护
+      } else {
+        remaining.push(member);
+      }
+    }
+
+    // 按 evenLabels 数量排序（多标签优先）
+    remaining.sort((a, b) => {
+      const aCount = (a.labels || []).filter((l) => evenLabels.includes(l)).length;
+      const bCount = (b.labels || []).filter((l) => evenLabels.includes(l)).length;
+      return bCount - aCount;
+    });
+
+    // Step 2: 贪心分配
+    for (const member of remaining) {
+      const scoreIfA = this.calculateScore([...teamA, member], teamB, evenLabels);
+      const scoreIfB = this.calculateScore(teamA, [...teamB, member], evenLabels);
+
+      if (scoreIfA <= scoreIfB) {
+        teamA.push(member);
+      } else {
+        teamB.push(member);
+      }
+    }
+
+    if (debug) {
+      logs.push({
+        step: 1,
+        action: 'init',
+        description: 'Greedy assignment complete',
+        teamA: teamA.map((m) => m.user?.nickname || m.userId),
+        teamB: teamB.map((m) => m.user?.nickname || m.userId),
+        score: this.calculateScore(teamA, teamB, evenLabels),
+      });
+    }
+
+    // Step 3: 2-opt 优化
+    let improved = true;
+    let iterations = 0;
+
+    while (improved && iterations < maxIterations) {
+      improved = false;
+      iterations++;
+      const currentScore = this.calculateScore(teamA, teamB, evenLabels);
+
+      outerLoop: for (let i = 0; i < teamA.length; i++) {
+        if (protectedIds.has(teamA[i].id)) continue;
+
+        for (let j = 0; j < teamB.length; j++) {
+          if (protectedIds.has(teamB[j].id)) continue;
+
+          // 尝试交换
+          [teamA[i], teamB[j]] = [teamB[j], teamA[i]];
+
+          // 检查 SAME_TEAM 约束
+          if (sameTeamLabel) {
+            const inA = teamA.some((m) => m.labels?.includes(sameTeamLabel));
+            const inB = teamB.some((m) => m.labels?.includes(sameTeamLabel));
+            if (inA && inB) {
+              [teamA[i], teamB[j]] = [teamB[j], teamA[i]]; // 撤销
+              continue;
+            }
+          }
+
+          const newScore = this.calculateScore(teamA, teamB, evenLabels);
+
+          if (newScore < currentScore) {
+            improved = true;
+            if (debug) {
+              logs.push({
+                step: logs.length + 1,
+                action: 'swap',
+                description: `Swapped ${teamA[i].user?.nickname || teamA[i].userId} <-> ${teamB[j].user?.nickname || teamB[j].userId}`,
+                teamA: teamA.map((m) => m.user?.nickname || m.userId),
+                teamB: teamB.map((m) => m.user?.nickname || m.userId),
+                score: newScore,
+              });
+            }
+            break outerLoop;
+          } else {
+            [teamA[i], teamB[j]] = [teamB[j], teamA[i]]; // 撤销
+          }
+        }
+      }
+    }
+
+    if (debug) {
+      logs.push({
+        step: logs.length + 1,
+        action: 'final',
+        description: `2-opt completed after ${iterations} iterations`,
+        teamA: teamA.map((m) => m.user?.nickname || m.userId),
+        teamB: teamB.map((m) => m.user?.nickname || m.userId),
+        score: this.calculateScore(teamA, teamB, evenLabels),
+      });
+    }
+
+    return { teamA, teamB, logs: debug ? logs : undefined };
+  }
+
+  /**
    * Fisher-Yates 洗牌算法
    */
   private shuffle<T>(array: T[]): void {
