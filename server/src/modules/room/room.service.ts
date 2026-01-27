@@ -296,8 +296,25 @@ export class RoomService {
     // 获取标签规则
     const labelRules = room.labelRules || {};
 
+    // 调试模式：通过环境变量控制
+    const debug = process.env.DIVISION_DEBUG === 'true';
+
     // 使用带规则的分边算法
-    const { teamA, teamB } = this.divideWithRules(members, labelRules);
+    const { teamA, teamB, logs } = this.divideWithRules(members, labelRules, { debug });
+
+    // 输出调试日志
+    if (debug && logs) {
+      console.log('=== Division Debug Logs ===');
+      for (const log of logs) {
+        console.log(`[Step ${log.step}] ${log.action}: ${log.description}`);
+        console.log(`  Team A: [${log.teamA.join(', ')}]`);
+        console.log(`  Team B: [${log.teamB.join(', ')}]`);
+        if (log.score !== undefined) {
+          console.log(`  Score: ${log.score}`);
+        }
+      }
+      console.log('=== End Debug Logs ===');
+    }
 
     // 更新成员队伍信息
     for (const member of teamA) {
