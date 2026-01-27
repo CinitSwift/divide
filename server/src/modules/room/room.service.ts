@@ -503,6 +503,33 @@ export class RoomService {
   }
 
   /**
+   * 计算分队方案的不平衡分数（越低越好）
+   * @param teamA A队成员列表
+   * @param teamB B队成员列表
+   * @param evenLabels 需要平均分配的标签列表
+   * @returns 不平衡分数
+   */
+  private calculateScore(
+    teamA: RoomMember[],
+    teamB: RoomMember[],
+    evenLabels: string[],
+  ): number {
+    let score = 0;
+
+    // 1. 标签不平衡惩罚 (权重 5)
+    for (const label of evenLabels) {
+      const countA = teamA.filter(m => m.labels?.includes(label)).length;
+      const countB = teamB.filter(m => m.labels?.includes(label)).length;
+      score += Math.abs(countA - countB) * 5;
+    }
+
+    // 2. 人数不平衡惩罚 (权重 3)
+    score += Math.abs(teamA.length - teamB.length) * 3;
+
+    return score;
+  }
+
+  /**
    * Fisher-Yates 洗牌算法
    */
   private shuffle<T>(array: T[]): void {
