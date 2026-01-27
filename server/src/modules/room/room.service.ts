@@ -14,6 +14,26 @@ import { CreateRoomDto } from './dto';
 import { UserService } from '../user/user.service';
 import { PusherService } from '../pusher/pusher.service';
 
+// === Division Algorithm Types (Internal Use Only) ===
+interface DivisionLog {
+  step: number;
+  action: 'init' | 'constraint' | 'assign' | 'swap' | 'final';
+  description: string;
+  teamA: string[];  // 成员昵称列表
+  teamB: string[];
+  score?: number;
+}
+
+interface DivisionOptions {
+  debug?: boolean;
+}
+
+interface DivisionResultInternal {
+  teamA: RoomMember[];
+  teamB: RoomMember[];
+  logs?: DivisionLog[];
+}
+
 @Injectable()
 export class RoomService {
   constructor(
