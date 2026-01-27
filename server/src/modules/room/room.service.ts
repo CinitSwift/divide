@@ -340,166 +340,145 @@ export class RoomService {
   private divideWithRules(
     members: RoomMember[],
     labelRules: LabelRulesConfig,
-  ): { teamA: RoomMember[]; teamB: RoomMember[] } {
-    const teamA: RoomMember[] = [];
-    const teamB: RoomMember[] = [];
-    const unassigned: RoomMember[] = [];
+    options: DivisionOptions = {},
+  ): DivisionResultInternal {
+    const { debug = false } = options;
+    const logs: DivisionLog[] = [];
 
-    // 隐藏规则（最高优先级）：葳蕤和兔子 90% 概率在同一边
+    // 边界条件
+    if (members.length === 0) {
+      return { teamA: [], teamB: [], logs: debug ? logs : undefined };
+    }
+    if (members.length === 1) {
+      return {
+        teamA: [members[0]],
+        teamB: [],
+        logs: debug ? logs : undefined,
+      };
+    }
+
+    // 提取规则配置
+    const evenLabels = Object.entries(labelRules)
+      .filter(([_, rule]) => String(rule) === 'even')
+      .map(([label]) => label);
+
+    const sameTeamLabel =
+      Object.entries(labelRules).find(
+        ([_, rule]) => String(rule) === 'same_team',
+      )?.[0] || null;
+
+    // Step 1: 处理隐藏规则（葳蕤 + 兔子 90% 同队）
+    let protectedAssignment: {
+      teamA: RoomMember[];
+      teamB: RoomMember[];
+    } | null = null;
+    const remainingMembers: RoomMember[] = [];
+
     const weiRuiMember = members.find((m) => m.user?.nickname === '葳蕤');
     const tuZiMember = members.find((m) => m.user?.nickname === '兔子');
     const hasSpecialPair = weiRuiMember && tuZiMember;
     const specialPairSameTeam = hasSpecialPair && Math.random() < 0.9;
 
     if (hasSpecialPair && specialPairSameTeam) {
-      // 90% 概率：两人在同一边
       const goToTeamA = Math.random() < 0.5;
-      if (goToTeamA) {
-        teamA.push(weiRuiMember, tuZiMember);
-      } else {
-        teamB.push(weiRuiMember, tuZiMember);
+      protectedAssignment = goToTeamA
+        ? { teamA: [weiRuiMember, tuZiMember], teamB: [] }
+        : { teamA: [], teamB: [weiRuiMember, tuZiMember] };
+
+      if (debug) {
+        logs.push({
+          step: 1,
+          action: 'constraint',
+          description: `Hidden rule: 葳蕤 + 兔子 assigned to ${goToTeamA ? 'Team A' : 'Team B'} (90% same team)`,
+          teamA: protectedAssignment.teamA.map(
+            (m) => m.user?.nickname || m.userId,
+          ),
+          teamB: protectedAssignment.teamB.map(
+            (m) => m.user?.nickname || m.userId,
+          ),
+        });
       }
-      // 其他成员待分配
+
       for (const member of members) {
         if (member !== weiRuiMember && member !== tuZiMember) {
-          unassigned.push(member);
+          remainingMembers.push(member);
         }
       }
     } else {
-      // 10% 概率或不存在特殊配对：正常流程
-      unassigned.push(...members);
+      remainingMembers.push(...members);
+      if (debug && hasSpecialPair) {
+        logs.push({
+          step: 1,
+          action: 'constraint',
+          description: 'Hidden rule: 葳蕤 + 兔子 NOT same team (10% chance)',
+          teamA: [],
+          teamB: [],
+        });
+      }
     }
 
-    // 第一步：处理 "全部在一边" 规则
-    const sameTeamLabel = Object.entries(labelRules)
-      .find(([_, rule]) => String(rule) === 'same_team')?.[0];
+    // Step 2: 根据人数选择算法
+    const swappableCount = remainingMembers.length;
+    let result: DivisionResultInternal;
 
-    // 从 unassigned 中处理
-    const remainingAfterSameTeam: RoomMember[] = [];
-
-    if (sameTeamLabel) {
-      const sameTeamMembers: RoomMember[] = [];
-
-      for (const member of unassigned) {
-        const memberLabels = member.labels || [];
-        if (memberLabels.includes(sameTeamLabel)) {
-          sameTeamMembers.push(member);
-        } else {
-          remainingAfterSameTeam.push(member);
-        }
+    if (swappableCount <= 12) {
+      if (debug) {
+        logs.push({
+          step: logs.length + 1,
+          action: 'init',
+          description: `Using CSP exact solver (${swappableCount} swappable members)`,
+          teamA:
+            protectedAssignment?.teamA.map(
+              (m) => m.user?.nickname || m.userId,
+            ) || [],
+          teamB:
+            protectedAssignment?.teamB.map(
+              (m) => m.user?.nickname || m.userId,
+            ) || [],
+        });
       }
-
-      // 随机决定这些人去 A 队还是 B 队
-      if (sameTeamMembers.length > 0) {
-        const goToTeamA = Math.random() < 0.5;
-        if (goToTeamA) {
-          teamA.push(...sameTeamMembers);
-        } else {
-          teamB.push(...sameTeamMembers);
-        }
-      }
+      result = this.solveWithCSP(
+        remainingMembers,
+        evenLabels,
+        sameTeamLabel,
+        protectedAssignment,
+        debug,
+      );
     } else {
-      remainingAfterSameTeam.push(...unassigned);
+      if (debug) {
+        logs.push({
+          step: logs.length + 1,
+          action: 'init',
+          description: `Using greedy+2-opt fallback (${swappableCount} swappable members)`,
+          teamA:
+            protectedAssignment?.teamA.map(
+              (m) => m.user?.nickname || m.userId,
+            ) || [],
+          teamB:
+            protectedAssignment?.teamB.map(
+              (m) => m.user?.nickname || m.userId,
+            ) || [],
+        });
+      }
+      result = this.greedyWithTwoOpt(
+        remainingMembers,
+        evenLabels,
+        sameTeamLabel,
+        protectedAssignment,
+        debug,
+      );
     }
 
-    // 第二步：处理 "平均分到每一队" 规则（优化版：全局平衡）
-    const evenLabels = Object.entries(labelRules)
-      .filter(([_, rule]) => String(rule) === 'even')
-      .map(([label]) => label);
-
-    // 为每个成员统计其拥有的需要平均分配的标签
-    interface MemberWithLabels {
-      member: RoomMember;
-      evenLabels: string[]; // 该成员拥有的需要平均分配的标签
+    // 合并日志
+    if (debug) {
+      return {
+        teamA: result.teamA,
+        teamB: result.teamB,
+        logs: [...logs, ...(result.logs || [])],
+      };
     }
 
-    const membersWithLabels: MemberWithLabels[] = remainingAfterSameTeam.map((member) => ({
-      member,
-      evenLabels: (member.labels || []).filter((label) => evenLabels.includes(label)),
-    }));
-
-    // 按拥有的平均分配标签数量降序排序（多标签成员优先处理）
-    membersWithLabels.sort((a, b) => b.evenLabels.length - a.evenLabels.length);
-
-    // 记录每个标签在各队的数量
-    const labelCountA: Map<string, number> = new Map();
-    const labelCountB: Map<string, number> = new Map();
-
-    // 初始化已分配成员的标签计数（处理隐藏规则和 same_team 规则分配的成员）
-    for (const member of teamA) {
-      for (const label of member.labels || []) {
-        if (evenLabels.includes(label)) {
-          labelCountA.set(label, (labelCountA.get(label) || 0) + 1);
-        }
-      }
-    }
-    for (const member of teamB) {
-      for (const label of member.labels || []) {
-        if (evenLabels.includes(label)) {
-          labelCountB.set(label, (labelCountB.get(label) || 0) + 1);
-        }
-      }
-    }
-
-    // 分配成员，考虑所有标签的平衡
-    for (const { member, evenLabels: memberEvenLabels } of membersWithLabels) {
-      if (memberEvenLabels.length === 0) {
-        // 无特殊标签，稍后处理
-        continue;
-      }
-
-      // 计算分配到 A 队和 B 队的"不平衡分数"
-      // 分数越高表示分配后越不平衡，选择分数低的队伍
-      let scoreA = 0;
-      let scoreB = 0;
-
-      for (const label of memberEvenLabels) {
-        const countA = labelCountA.get(label) || 0;
-        const countB = labelCountB.get(label) || 0;
-
-        // 如果分到 A 队，A 队该标签数量会 +1
-        // 不平衡程度 = |新A数量 - B数量|
-        scoreA += Math.abs((countA + 1) - countB);
-        // 如果分到 B 队，B 队该标签数量会 +1
-        scoreB += Math.abs(countA - (countB + 1));
-      }
-
-      // 同时考虑队伍人数平衡
-      const teamSizePenalty = 2; // 人数差异的权重
-      scoreA += Math.abs((teamA.length + 1) - teamB.length) * teamSizePenalty;
-      scoreB += Math.abs(teamA.length - (teamB.length + 1)) * teamSizePenalty;
-
-      // 选择分数较低的队伍（更平衡）
-      if (scoreA <= scoreB) {
-        teamA.push(member);
-        for (const label of memberEvenLabels) {
-          labelCountA.set(label, (labelCountA.get(label) || 0) + 1);
-        }
-      } else {
-        teamB.push(member);
-        for (const label of memberEvenLabels) {
-          labelCountB.set(label, (labelCountB.get(label) || 0) + 1);
-        }
-      }
-    }
-
-    // 第三步：处理无特殊规则的成员
-    const noLabelMembers = membersWithLabels
-      .filter(({ evenLabels }) => evenLabels.length === 0)
-      .map(({ member }) => member);
-
-    this.shuffle(noLabelMembers);
-
-    // 尽量保持两队人数平衡
-    for (const member of noLabelMembers) {
-      if (teamA.length <= teamB.length) {
-        teamA.push(member);
-      } else {
-        teamB.push(member);
-      }
-    }
-
-    return { teamA, teamB };
+    return result;
   }
 
   /**
